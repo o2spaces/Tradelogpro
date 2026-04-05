@@ -1235,6 +1235,7 @@ function init(){
   updateStats();updateRecent();
   initEmojiGrid();
   initSessionTagColors();
+  loadDropOptions(); // โหลด dropdown options ที่บันทึกไว้
   renderCal();
   setTimeout(function(){setEmoByIdx(0);},0);
   document.addEventListener('click',function(e){
@@ -1251,6 +1252,31 @@ function init(){
   });
 }
 function persist(){localStorage.setItem('tj_s',JSON.stringify(S.sessions));localStorage.setItem('tj_t',JSON.stringify(S.trades));}
+
+// ── Dropdown options persistence ──
+var DROP_DEFAULTS = {
+  rTrend:   ['Bullish','Bearish','Sideways'],
+  rZone:    ['Demand','Supply','FVG','iFVG','IDM','OB','POI'],
+  rConfirm: ['M1','M5','M15','M30','H1','H4','SMC','Price Action','FIBO']
+};
+function loadDropOptions(){
+  Object.keys(DROP_DEFAULTS).forEach(function(id){
+    var stored = localStorage.getItem('tj_drop_'+id);
+    var opts = stored ? JSON.parse(stored) : DROP_DEFAULTS[id];
+    var sel = document.getElementById(id);
+    if(!sel) return;
+    // ลบ options เก่าทั้งหมด ยกเว้น placeholder
+    Array.from(sel.options).forEach(function(o){ if(o.value!=='') o.remove(); });
+    opts.forEach(function(v){
+      var o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
+    });
+  });
+}
+function saveDropOptions(selectId){
+  var sel=document.getElementById(selectId); if(!sel) return;
+  var opts=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
+  localStorage.setItem('tj_drop_'+selectId, JSON.stringify(opts));
+}
 function pad(n){return n<10?'0'+n:''+n;}
 function dk(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function fmtD(d){return MONTHS[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();}
@@ -2374,17 +2400,34 @@ function openDropEdit(selectId, label){
     +'<div style="font-size:13px;font-weight:600;margin-bottom:10px;">✎ Edit '+label+' Options</div>'
     +'<div id="deList" style="margin-bottom:10px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;"></div>'
     +'<div style="display:flex;gap:6px;">'
-    +'<input id="deInput" class="settings-input" placeholder="New option..." style="flex:1;margin-top:0;">'
-    +'<button class="btn-primary" onclick="deAddOpt(\''+selectId+'\')" style="padding:5px 10px;">Add</button>'
+    +'<input id="deInput" class="settings-input" placeholder="New option... (Enter = Add)" style="flex:1;margin-top:0;">'
+    +'<button class="btn-primary" onclick="deAddOpt(\''+selectId+'\')" style="padding:5px 10px;">+ Add</button>'
     +'</div>'
-    +'<div style="display:flex;justify-content:flex-end;margin-top:10px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'
+    +'<button onclick="deResetOpts(\''+selectId+'\')" style="font-size:10px;background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;padding:4px 8px;border-radius:4px;font-family:var(--font-main);">↺ Reset default</button>'
     +'<button class="btn-sm" onclick="document.getElementById(\'dropEditModal\').remove()">✓ Done</button>'
     +'</div>'
     +'<button onclick="document.getElementById(\'dropEditModal\').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;">✕</button>'
     +'</div>';
   document.body.appendChild(modal);
   deRenderList(selectId, opts);
+  // Enter key to add
+  setTimeout(function(){
+    var inp=document.getElementById('deInput');
+    if(inp) inp.addEventListener('keydown',function(e){ if(e.key==='Enter') deAddOpt(selectId); });
+  },0);
   modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+}
+function deResetOpts(selectId){
+  if(!confirm('รีเซ็ตกลับค่าเริ่มต้น?')) return;
+  localStorage.removeItem('tj_drop_'+selectId);
+  var sel=document.getElementById(selectId); if(!sel) return;
+  Array.from(sel.options).forEach(function(o){if(o.value!=='')o.remove();});
+  (DROP_DEFAULTS[selectId]||[]).forEach(function(v){
+    var o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);
+  });
+  var opts=(DROP_DEFAULTS[selectId]||[]);
+  deRenderList(selectId, opts);
 }
 function deRenderList(selectId, opts){
   var list=document.getElementById('deList');if(!list)return;
@@ -2399,14 +2442,19 @@ function deAddOpt(selectId){
   var inp=document.getElementById('deInput');if(!inp)return;
   var val=inp.value.trim();if(!val)return;
   var sel=document.getElementById(selectId);if(!sel)return;
+  // ตรวจว่ามีอยู่แล้วหรือยัง
+  var exists=Array.from(sel.options).some(function(o){return o.text===val;});
+  if(exists){inp.value='';return;}
   var opt=document.createElement('option');opt.value=val;opt.textContent=val;sel.appendChild(opt);
   inp.value='';
+  saveDropOptions(selectId); // บันทึกลง localStorage
   var opts=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
   deRenderList(selectId, opts);
 }
 function deRemoveOpt(selectId, val){
   var sel=document.getElementById(selectId);if(!sel)return;
   Array.from(sel.options).forEach(function(o){if(o.text===val)o.remove();});
+  saveDropOptions(selectId); // บันทึกลง localStorage
   var opts=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
   deRenderList(selectId, opts);
 }
