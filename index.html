@@ -904,7 +904,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
     <input class="settings-input" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec">
     <div style="margin-top:10px;"><div class="field-label" style="margin-bottom:5px;">📋 Code:</div>
     <div class="code-block">/* =========================================
-   TradeLog Pro — Google Apps Script v4
+   TradeLog Pro — Google Apps Script v4.1
    รองรับ: Portfolio | Candle | Mode | TF
            Trend | Zone | Confirm | Sessions
            Emotion | Discipline | MaxRR | SetupClass
@@ -954,6 +954,7 @@ function doPost(e){
     else if(d.action==='saveSession')  res=saveSession(d);
     else if(d.action==='deleteDay')    res=deleteDay(d);
     else if(d.action==='saveAssets')   res=saveAssets(d);
+    else if(d.action==='deletePortfolio') res=deletePortfolio(d);
     else res={status:'error',msg:'unknown action'};
     return _json(res);
   }catch(err){_log('ERROR',err.toString());return _json({status:'error',msg:err.toString()});}
@@ -1068,6 +1069,23 @@ function deleteDay(d){
     }
   });
   return {status:'ok',date:d.date,portfolio:portfolio};
+}
+
+/* ── DELETE PORTFOLIO ── */
+function deletePortfolio(d){
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var portfolio=String(d.portfolio||'');
+  if(!portfolio) return {status:'error',msg:'no portfolio id'};
+  [SHEET.TRADES,SHEET.SESSIONS,SHEET.SUMMARY].forEach(function(name){
+    var sh=ss.getSheetByName(name); if(!sh||sh.getLastRow()&lt;2) return;
+    var portCol=name===SHEET.TRADES?3:2;
+    var vals=sh.getDataRange().getValues();
+    for(var i=vals.length-1;i>=1;i--){
+      if(String(vals[i][portCol-1])===portfolio) sh.deleteRow(i+1);
+    }
+  });
+  _log('deletePortfolio','portfolio='+portfolio);
+  return {status:'ok',portfolio:portfolio};
 }
 
 /* ── RECALC SUMMARY ── */
@@ -1575,7 +1593,7 @@ function editPortfolio(id){
     +'<div style="display:flex;gap:7px;justify-content:space-between;">'
     +'<div style="display:flex;gap:7px;"><button class="btn-primary" onclick="confirmEditPortfolio(\''+id+'\',this)">💾 บันทึก</button>'
     +'<button class="btn-sm" onclick="this.closest(\'div[style*=fixed]\').remove()">Cancel</button></div>'
-    +(id!=='default'?'<button style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:var(--radius-sm);padding:4px 9px;font-size:11px;cursor:pointer;" onclick="deletePortfolio(\''+id+'\',this)">🗑 ลบ</button>':'')
+    +'<button style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:var(--radius-sm);padding:4px 9px;font-size:11px;cursor:pointer;" onclick="deletePortfolio(\''+id+'\',this)">🗑 ลบ</button>'
     +'</div></div>';
   document.body.appendChild(modal);
   modal.addEventListener('mousedown',function(e){modal._mdOnBack=(e.target===modal);});modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._mdOnBack)modal.remove();modal._mdOnBack=false;});
@@ -1592,15 +1610,23 @@ function confirmEditPortfolio(id,btn){
   showToast('✅ อัปเดตพอร์ตแล้ว','success');
 }
 function deletePortfolio(id,btn){
-  if(id==='default'){showToast('ลบพอร์ต Default ไม่ได้','error');return;}
   if(!confirm('ลบพอร์ตนี้? ข้อมูลออเดอร์ในพอร์ตนี้จะหายไปด้วย')) return;
   delete S.portfolios[id];
   localStorage.removeItem('port_'+id+'_s');
   localStorage.removeItem('port_'+id+'_t');
   btn.closest('div[style*=fixed]').remove();
-  if(S.currentPortfolio===id) switchPortfolio('default');
+  var remaining=Object.keys(S.portfolios);
+  if(S.currentPortfolio===id){
+    if(remaining.length>0){
+      switchPortfolio(remaining[0]);
+    } else {
+      S.portfolios['default']={name:'Default',balance:0,fund:''};
+      switchPortfolio('default');
+    }
+  }
   renderPortfolioBar();
   localStorage.setItem('tj_ports',JSON.stringify(S.portfolios));
+  if(S.scriptUrl) sendSheet('deletePortfolio',{portfolio:id});
   showToast('🗑 ลบพอร์ตแล้ว','success');
 }
 
@@ -1954,7 +1980,7 @@ function calcRiskLots(){
   var risk=parseFloat(document.getElementById('oRisk').value)||0;
   var en=parseFloat(document.getElementById('oEntry').value)||0,sl=parseFloat(document.getElementById('oSL').value)||0;
   var asset=document.getElementById('oAsset').value;
-  if(risk&&en&&sl&&asset){var diff=Math.abs(en-sl);var pv=POINT_VAL[asset]||1;if(diff>0){var lots=(risk/(diff*pv));if(FUTURES_ASSETS[asset]&&lots<1) lots=1;document.getElementById('oLots').value=lots.toFixed(2);}}
+  if(risk&&en&&sl&&asset){var diff=Math.abs(en-sl);var pv=POINT_VAL[asset]||1;if(diff>0){var lots=(risk/(diff*pv));if(FUTURES_ASSETS[asset]){lots=Math.max(1,Math.round(lots));document.getElementById('oLots').value=lots.toFixed(0);}else{document.getElementById('oLots').value=lots.toFixed(2);}}}
   calcAll();
 }
 function calcPnl(){
@@ -2689,7 +2715,7 @@ function testSheet(){var url=document.getElementById('sheetUrl').value.trim();if
 function setConn(ok){var d=document.getElementById('sDot'),t=document.getElementById('sTxt');if(ok){d.classList.add('connected');t.textContent='Connected';t.style.color='var(--green)';loadAssetsFromSheet();}else{d.classList.remove('connected');t.textContent='Offline';t.style.color='var(--text-muted)';}}
 function sendSheet(action,data){
   if(!S.scriptUrl)return;
-  var icons={saveTrade:'📊',saveSession:'📝',deleteTrade:'🗑',deleteDay:'🗑',saveAssets:'🗂️'};
+  var icons={saveTrade:'📊',saveSession:'📝',deleteTrade:'🗑',deleteDay:'🗑',saveAssets:'🗂️',deletePortfolio:'🗑'};
   var payload=Object.assign({action:action, portfolio:S.currentPortfolio}, data);
   fetch(S.scriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(){showToast((icons[action]||'📊')+' Sheet: '+action+' OK','success');})
