@@ -617,7 +617,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
       </div>
     </div>
   </div>
-  <button class="btn-save" onclick="saveEntry()">💾 Save Entry</button>
+  <button class="btn-save" onclick="saveEntry()">💾 Save Day</button>
   <!-- TODAY'S ORDERS -->
   <div class="section-label" style="margin-top:12px;">ออเดอร์วันนี้</div>
   <div id="todayOrdersList"><div style="font-size:11px;color:var(--text-muted);padding:4px 3px;">ยังไม่มีออเดอร์วันนี้</div></div>
@@ -2182,6 +2182,7 @@ function renderTT(){
 }
 function delTr(i){
   var t=S.mTrades[i];
+  if(!confirm('ลบออเดอร์ '+( t.asset||'')+(t.entry?' @ '+t.entry:'')+' ใช่ไหม?')) return;
   S.mTrades.splice(i,1);
   renderTT();
   S.trades[S.mKey]=S.mTrades;
