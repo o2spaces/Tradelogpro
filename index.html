@@ -2177,7 +2177,7 @@ function renderTT(){
     var p=parseFloat(t.pnl)||0;
     var resBadge=t.result==='Win'?'<span style="color:var(--green);font-size:10px;font-weight:600;">✓W</span>':t.result==='Loss'?'<span style="color:var(--red);font-size:10px;font-weight:600;">✗L</span>':'<span style="color:var(--amber);font-size:10px;">BE</span>';
     var imgCell=t.imgLink?'<a href="'+t.imgLink+'" target="_blank" style="font-size:12px;text-decoration:none;">🖼️</a>':'-';
-    return '<tr><td style="font-family:var(--font-mono);font-weight:500">'+t.asset+'</td><td><span class="side-badge '+t.side.toLowerCase()+'">'+t.side+'</span></td><td>'+t.lots+'</td><td style="font-family:var(--font-mono)">'+t.entry+'</td><td style="font-family:var(--font-mono)">'+(t.close||'-')+'</td><td class="'+(p>=0?'pnl-pos':'pnl-neg')+'">'+(p>=0?'+':'')+'$'+Math.abs(p).toFixed(2)+'</td><td>'+resBadge+'</td><td style="font-size:10px;color:var(--text-muted)">'+(t.timeInPos||'-')+'</td><td style="font-size:10px;color:var(--text-secondary)">'+t.note+'</td><td>'+imgCell+'</td><td style="white-space:nowrap;"><button class="btn-del" onclick="editTr('+i+')" title="แก้ไข" style="color:var(--accent);margin-right:2px;">✎</button><button class="btn-del" onclick="delTr('+i+')">✕</button></td></tr>';
+    return '<tr><td style="font-family:var(--font-mono);font-weight:500">'+t.asset+'</td><td><span class="side-badge '+t.side.toLowerCase()+'">'+t.side+'</span></td><td>'+t.lots+'</td><td style="font-family:var(--font-mono)">'+t.entry+'</td><td style="font-family:var(--font-mono)">'+(t.close||'-')+'</td><td class="'+(p>=0?'pnl-pos':'pnl-neg')+'">'+(p>=0?'+':'')+'$'+Math.abs(p).toFixed(2)+'</td><td>'+resBadge+'</td><td style="font-size:10px;color:var(--text-muted)">'+(t.timeInPos||'-')+'</td><td style="font-size:10px;color:var(--text-secondary)">'+t.note+'</td><td>'+imgCell+'</td><td style="white-space:nowrap;"><button class="btn-del" onclick="editTr('+i+')" title="แก้ไข" style="color:var(--accent);margin-right:2px;">✎</button><button class="btn-del" onclick="moveTrDate('+i+')" title="ย้ายไปวันอื่น" style="color:var(--amber);margin-right:2px;">📅</button><button class="btn-del" onclick="delTr('+i+')">✕</button></td></tr>';
   }).join('');
 }
 function delTr(i){
@@ -2189,6 +2189,77 @@ function delTr(i){
   persistPort();
   renderTodayOrders();
   if(S.scriptUrl&&t&&t.id) sendSheet('deleteTrade',{id:t.id,date:S.mKey,portfolio:S.currentPortfolio});
+}
+function moveTrDate(i){
+  var t=S.mTrades[i];
+  var existing=document.getElementById('moveDateModal');if(existing)existing.remove();
+  var modal=document.createElement('div');
+  modal.id='moveDateModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center;';
+  // Build a simple list of existing dates (sorted desc) for quick pick
+  var existingDates=Object.keys(S.trades).filter(function(k){return k!==S.mKey&&(S.trades[k]||[]).length>=0;}).sort().reverse().slice(0,10);
+  var quickPicks=existingDates.length?'<div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">วันที่มีออเดอร์อยู่แล้ว:</div><div style="display:flex;flex-wrap:wrap;gap:4px;" id="moveDateQuickPicks">'+existingDates.map(function(d){return '<button onclick="document.getElementById(\'moveDateInput\').value=\''+d+'\'" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--font-mono);cursor:pointer;" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.color=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--text-secondary)\'">'+d+'</button>';}).join('')+'</div></div>':'';
+  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:18px;min-width:300px;max-width:380px;position:relative;">'
+    +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">📅 ย้ายออเดอร์ไปวันอื่น</div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">ออเดอร์: <span style="color:var(--accent);font-family:var(--font-mono);font-weight:600;">'+(t.asset||'?')+' '+(t.side||'')+' @ '+(t.entry||'?')+'</span></div>'
+    +'<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;">'
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">วันปัจจุบัน</div>'
+    +'<div style="font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--amber);">'+S.mKey+'</div>'
+    +'</div>'
+    +quickPicks
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">เลือกวันที่ใหม่</div>'
+    +'<input id="moveDateInput" type="date" value="'+S.mKey+'" style="width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;font-family:var(--font-mono);margin-bottom:14px;outline:none;color-scheme:dark;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'">'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button onclick="confirmMoveDate('+i+')" style="flex:1;background:var(--accent);color:#fff;border:none;padding:8px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-main);">📅 ย้ายไปวันนี้</button>'
+    +'<button onclick="document.getElementById(\'moveDateModal\').remove()" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-family:var(--font-main);">ยกเลิก</button>'
+    +'</div>'
+    +'<button onclick="document.getElementById(\'moveDateModal\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;">✕</button>'
+    +'</div>';
+  document.body.appendChild(modal);
+  // close on backdrop click
+  modal.addEventListener('mousedown',function(e){modal._md=(e.target===modal);});
+  modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._md)modal.remove();modal._md=false;});
+  // auto-focus date input
+  setTimeout(function(){var inp=document.getElementById('moveDateInput');if(inp)inp.focus();},50);
+}
+function confirmMoveDate(i){
+  var inp=document.getElementById('moveDateInput');if(!inp)return;
+  var newDate=inp.value;
+  if(!newDate){showToast('กรุณาเลือกวันที่','error');return;}
+  if(newDate===S.mKey){showToast('วันที่เดิม ไม่ได้ย้ายไปไหน','');document.getElementById('moveDateModal').remove();return;}
+  // validate date format
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newDate)){showToast('รูปแบบวันที่ไม่ถูกต้อง','error');return;}
+  var trade=S.mTrades[i];
+  var oldKey=S.mKey;
+  // Remove from current day
+  S.mTrades.splice(i,1);
+  S.trades[oldKey]=S.mTrades;
+  // Add to new day
+  if(!S.trades[newDate]) S.trades[newDate]=[];
+  S.trades[newDate].push(trade);
+  // Update sessions PnL for both days
+  function recalcSession(k){
+    var tr=S.trades[k]||[];
+    var pnl=tr.reduce(function(s,t){return s+(parseFloat(t.pnl)||0);},0);
+    var wins=tr.filter(function(t){return parseFloat(t.pnl)>0;}).length;
+    if(!S.sessions[k]) S.sessions[k]={};
+    S.sessions[k].netPnl=pnl;S.sessions[k].trades=tr.length;S.sessions[k].wins=wins;
+  }
+  recalcSession(oldKey);
+  recalcSession(newDate);
+  persistPort();
+  renderTT();
+  updateStats();renderCal();updateRecent();renderTodayOrders();
+  // Sync to sheet if connected
+  if(S.scriptUrl){
+    sendSheet('saveTrade',Object.assign({date:newDate},trade));
+    if(trade.id) sendSheet('deleteTrade',{id:trade.id,date:oldKey,portfolio:S.currentPortfolio});
+    // update id so sheet knows this is the moved version
+    trade.id=Date.now();
+    sendSheet('saveTrade',Object.assign({date:newDate},trade));
+  }
+  document.getElementById('moveDateModal').remove();
+  showToast('✅ ย้ายออเดอร์ไป '+newDate+' แล้ว','success');
 }
 function editTr(i){
   var t=S.mTrades[i];
