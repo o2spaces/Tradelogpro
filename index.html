@@ -694,7 +694,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
           <!-- SESSION + Time in Position on same row (fix 2) -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;align-items:start;">
             <div>
-              <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">SESSION <span style="font-size:9px;color:var(--text-muted);">เลือกได้อิสระ</span></div>
+              <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Session <span style="font-size:9px;color:var(--text-muted);">เลือกได้อิสระ</span></div>
               <div id="oSessionTagRow" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;margin-bottom:0;">
                 <span class="tag sydney" id="ostag-sydney" data-sess="sydney" onclick="toggleOrderSession(this,'sydney')" style="font-size:9px;padding:3px 2px;text-align:center;display:block;">SYD</span>
                 <span class="tag tokyo" id="ostag-tokyo" data-sess="tokyo" onclick="toggleOrderSession(this,'tokyo')" style="font-size:9px;padding:3px 2px;text-align:center;display:block;">TKY</span>
@@ -1969,7 +1969,66 @@ function mTabById(id){['tComment','tOrder','tAnalysis'].forEach(function(t){docu
 
 var POINT_VAL={MNQ1:2,NQ1:20,MGC1:10,GC1:100,'XAU/USD':1,EURUSD:1,GBPUSD:1,USDJPY:0.01,BTCUSD:1};
 var S_result='BE';
-function toggleOF(){var f=document.getElementById('orderForm');var show=f.style.display==='none';f.style.display=show?'block':'none';if(show){var now=new Date();var fmt=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'T'+pad(now.getHours())+':'+pad(now.getMinutes());document.getElementById('oEntryDate').value=fmt;document.getElementById('oImgLink').value='';document.getElementById('oImgPreview').style.display='none';S._editIdx=-1;var ab=document.querySelector('#orderForm .btn-primary');if(ab){ab.textContent='✓ Add Trade';ab.onclick=function(){addTrade();};}}}  
+function toggleOF(){
+  var f=document.getElementById('orderForm');
+  var show=f.style.display==='none';
+  f.style.display=show?'block':'none';
+  if(show){
+    // Reset ALL fields when opening Add Entry form
+    var now=new Date();
+    var fmt=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
+    // Asset & Side
+    document.getElementById('oAsset').value='';
+    setSide('Long');
+    // Session tags — clear all
+    document.querySelectorAll('#oSessionTagRow .tag').forEach(function(el){el.classList.remove('active');});
+    var hint=document.getElementById('oSessionAIHint');if(hint)hint.style.display='none';
+    // Time fields
+    document.getElementById('oEntryDate').value=fmt;
+    document.getElementById('oCloseDate').value='';
+    document.getElementById('oTimePos').value='';
+    // Price fields
+    document.getElementById('oEntry').value='';
+    document.getElementById('oTP').value='';
+    document.getElementById('oSL').value='';
+    document.getElementById('oRisk').value='';
+    document.getElementById('oLots').value='';
+    document.getElementById('oComm').value='';
+    document.getElementById('oClose').value='';
+    document.getElementById('oPnl').value='';
+    document.getElementById('oMaxRR').value='';
+    // Dropdowns
+    document.getElementById('oResultSel').value='BE';
+    document.getElementById('oContr').value='1';
+    document.getElementById('oSetupClass').value='';
+    document.getElementById('oCandle').value='';
+    document.getElementById('oCode').value='';
+    document.getElementById('oMode').value='';
+    document.getElementById('oTF').value='';
+    document.getElementById('oTrend').value='';
+    document.getElementById('oZone').value='';
+    document.getElementById('oConfirm').value='';
+    // Note & Image
+    document.getElementById('oNote').value='';
+    document.getElementById('oImgLink').value='';
+    document.getElementById('oImgPreview').style.display='none';
+    // Sliders
+    document.getElementById('oEmoSlider').value=5;updateOrderEmo(5);
+    document.getElementById('oDiscSlider').value=5;updateOrderDisc(5);
+    // SL point label & warn bar
+    var slPt=document.getElementById('oSLPoint');if(slPt)slPt.textContent='';
+    var warn=document.getElementById('riskWarnBar');if(warn)warn.style.display='none';
+    var riskDot=document.getElementById('oRiskWarnDot');if(riskDot)riskDot.style.display='none';
+    var ri=document.getElementById('oRisk');if(ri){ri.style.borderColor='';ri.style.color='';}
+    var cb=document.getElementById('calcBar');if(cb)cb.style.display='none';
+    // Result state
+    S_result='BE';
+    // Edit index
+    S._editIdx=-1;
+    var ab=document.querySelector('#orderForm .btn-primary');
+    if(ab){ab.textContent='✓ Add Trade';ab.onclick=function(){addTrade();};}
+  }
+}
 function setSide(s){S.side=s;document.getElementById('sL').className='side-opt'+(s==='Long'?' active long':'');document.getElementById('sS').className='side-opt'+(s==='Short'?' active short':' short');}
 function setResult(r){
   S_result=r;
