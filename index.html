@@ -547,7 +547,23 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
 <!-- RIGHT -->
 <div class="sidebar-right" id="sideRight" style="position:relative;">
   
-  <div class="panel-title" style="margin-top:4px;"><span>Today</span><span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)" id="todayDate"></span></div>
+  <!-- Date picker header -->
+  <div style="margin-top:4px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:4px;">
+    <button onclick="sidebarDateShift(-1)" title="วันก่อน" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:var(--radius-sm);width:26px;height:26px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">‹</button>
+    <div style="flex:1;text-align:center;position:relative;">
+      <div id="sidebarDateLabel" onclick="toggleSidebarDatePopup()" style="font-size:12px;font-weight:600;cursor:pointer;padding:3px 6px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-input);transition:border-color .15s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📅 วันนี้</div>
+      <div id="sidebarDatePopup" style="display:none;position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);z-index:500;background:var(--bg-card);border:1px solid var(--border-hover);border-radius:10px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.6);min-width:220px;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;text-align:center;">เลือกวันที่</div>
+        <input type="date" id="sidebarDateInput" onchange="sidebarDateChange(this.value)" style="width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;font-family:var(--font-mono);outline:none;color-scheme:dark;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <div style="display:flex;gap:5px;margin-top:7px;">
+          <button onclick="sidebarGoToday();toggleSidebarDatePopup()" style="flex:1;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:var(--radius-sm);padding:4px;font-size:10px;cursor:pointer;font-family:var(--font-main);">📅 วันนี้</button>
+          <button onclick="toggleSidebarDatePopup()" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-sm);padding:4px 8px;font-size:10px;cursor:pointer;">✕</button>
+        </div>
+      </div>
+    </div>
+    <button onclick="sidebarDateShift(1)" title="วันถัดไป" id="sidebarNextBtn" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:var(--radius-sm);width:26px;height:26px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">›</button>
+    <button onclick="sidebarGoToday()" title="กลับวันนี้" id="sidebarTodayBtn" style="display:none;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:var(--radius-sm);padding:2px 7px;font-size:10px;cursor:pointer;white-space:nowrap;font-family:var(--font-main);">Today</button>
+  </div>
   <div class="section-label">Emotional State</div>
   <div class="emotion-bar-wrap">
     <div class="emotion-bar" id="emoBar" onmousemove="emoHover(event)" onmouseleave="emoLeave()" onclick="emoClick(event)">
@@ -619,7 +635,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
   </div>
   <button class="btn-save" onclick="saveEntry()">💾 Save Day</button>
   <!-- TODAY'S ORDERS -->
-  <div class="section-label" style="margin-top:12px;">ออเดอร์วันนี้</div>
+  <div class="section-label" style="margin-top:12px;" id="sidebarOrdersLabel">ออเดอร์วันนี้</div>
   <div id="todayOrdersList"><div style="font-size:11px;color:var(--text-muted);padding:4px 3px;">ยังไม่มีออเดอร์วันนี้</div></div>
 </div>
 </div>
@@ -638,10 +654,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
   </div>
   <div class="modal-body">
     <div id="tComment">
-      <div style="position:relative;">
+      <div style="position:relative;overflow:visible;">
         <textarea class="field-textarea" id="dComment" style="min-height:130px;width:100%;padding-right:34px;" placeholder="Write your trading thoughts here..."></textarea>
         <button onclick="toggleEmojiPanel('commentEmojiPanel',event)" title="เลือก Emoji" style="position:absolute;right:6px;top:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">😊</button>
-        <div id="commentEmojiPanel" style="display:none;position:absolute;right:0;top:36px;z-index:300;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.4);width:280px;">
+        <div id="commentEmojiPanel" style="display:none;position:absolute;right:0;bottom:calc(100% + 6px);z-index:500;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.6);width:280px;">
           <div class="emoji-tab-row" id="commentEmojiTabs"></div>
           <div class="emoji-history-row"><span class="emoji-history-label">ล่าสุด:</span><span id="commentEmojiHistory" style="display:flex;flex-wrap:wrap;gap:1px;"></span></div>
           <div class="emoji-search-row"><input class="emoji-search-input" id="commentEmojiSearch" placeholder="🔍 ค้นหา emoji..." oninput="commentEmojiSearch(this.value)"></div>
@@ -803,17 +819,17 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
               </select>
             </div>
           </div>
-          <!-- TREND + ZONE + CONFIRM collapse group — collapsed by default (fix 3) -->
+          <!-- MITIGATED ZONE + ZONE + CONFIRM collapse group — collapsed by default (fix 3) -->
           <div style="margin-bottom:8px;">
             <div onclick="toggleTZC()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 9px;font-size:11px;font-weight:500;color:var(--text-secondary);user-select:none;" id="tzcHeader">
-              <span>📊 Trend / Zone / Confirm</span>
+              <span>📊 Mitigated Zone / Zone / Confirm</span>
               <span id="tzcArrow" style="font-size:10px;transition:transform .2s;transform:rotate(-90deg);">▼</span>
             </div>
             <div id="tzcBody" style="margin-top:6px;display:none;">
               <div class="fg2" style="margin-bottom:8px;">
                 <div>
-                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Trend <button onclick="openDropEdit('oTrend','Trend')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
-                  <select class="form-input" id="oTrend"><option value="">Select</option><option>Bullish</option><option>Bearish</option><option>Sideways</option></select>
+                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Mitigated Zone <button onclick="openDropEdit('oTrend','Mitigated Zone')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+                  <select class="form-input" id="oTrend"><option value="">Select</option><option>BMS+FVG</option><option>Bos1</option><option>Bos1-ย้าย</option><option>Bos2</option><option>FVG</option></select>
                 </div>
                 <div>
                   <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Zone <button onclick="openDropEdit('oZone','Zone')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
@@ -906,9 +922,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
     <input class="settings-input" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec">
     <div style="margin-top:10px;"><div class="field-label" style="margin-bottom:5px;">📋 Code:</div>
     <div class="code-block">/* =========================================
-   TradeLog Pro — Google Apps Script v4.1
+   TradeLog Pro — Google Apps Script v4.2
    รองรับ: Portfolio | Candle | Mode | TF
-           Trend | Zone | Confirm | Sessions
+           MitigatedZone | Zone | Confirm | Sessions
            Emotion | Discipline | MaxRR | SetupClass
            Custom Assets (saveAssets/loadAssets)
    Sheet: Trades | Sessions | Summary | Assets | Log
@@ -921,7 +937,7 @@ var HDR={
     'PnL($)','Commission($)','Result','Risk','MaxRR','TimeInPos',
     'EntryDateTime','CloseDateTime',
     'SetupClass','Candle','Code','Mode','Timeframe',
-    'Trend','Zone','Confirm','Sessions','Emotion','Discipline',
+    'MitigatedZone','Zone','Confirm','Sessions','Emotion','Discipline',
     'Note','ImageLink','UpdatedAt'
   ],
   SESSIONS:[
@@ -1486,7 +1502,7 @@ function init(){
   loadDropOptions();
   renderPortfolioBar();
   renderCal();
-  renderTodayOrders();
+  setTimeout(function(){ _sidebarRefresh(); },50);
   setTimeout(function(){setEmoByIdx(0);},0);
   document.addEventListener('click',function(e){
     var d=document.getElementById('dropMenu'),b=document.getElementById('menuBtn');
@@ -1499,6 +1515,14 @@ function init(){
         }
       }
     });
+    // close sidebar date popup
+    var dp = document.getElementById('sidebarDatePopup');
+    if(dp && dp.style.display !== 'none'){
+      var lbl = document.getElementById('sidebarDateLabel');
+      if(!dp.contains(e.target) && e.target !== lbl && !lbl.contains(e.target)){
+        dp.style.display = 'none';
+      }
+    }
   });
 }
 function persist(){
@@ -1637,13 +1661,23 @@ var DROP_DEFAULTS = {
   rTrend:   ['Bullish','Bearish','Sideways'],
   rConfirm: ['M1','M5','M15','M30','H1','H4','SMC','Price Action','FIBO'],
   oAsset:   ['MNQ1','NQ1','MGC1','GC1','XAU/USD','EURUSD','GBPUSD','USDJPY','BTCUSD'],
-  oTrend:   ['Bullish','Bearish','Sideways'],
+  oTrend:   ['BMS+FVG','Bos1','Bos1-ย้าย','Bos2','FVG'],
   oZone:    ['Demand','Supply','FVG','iFVG','IDM','OB','POI'],
   oConfirm: ['M1','M5','M15','M30','H1','H4','SMC','Price Action','FIBO'],
   oTF:      ['M1','M5','M15','M30','H1','H4','D1','W'],
   oMode:    ['BE','CHe','BE>CHe','BE>BE','CHe>BE','CHe>CHe']
 };
 function loadDropOptions(){
+  // Migrate: reset oTrend if it still has old Trend values (Bullish/Bearish/Sideways)
+  var storedOTrend = localStorage.getItem('tj_drop_oTrend');
+  if(storedOTrend){
+    try{
+      var arr=JSON.parse(storedOTrend);
+      if(arr.indexOf('Bullish')>=0||arr.indexOf('Bearish')>=0||arr.indexOf('Sideways')>=0){
+        localStorage.removeItem('tj_drop_oTrend');
+      }
+    }catch(e){}
+  }
   Object.keys(DROP_DEFAULTS).forEach(function(id){
     var stored = localStorage.getItem('tj_drop_'+id);
     var opts = stored ? JSON.parse(stored) : DROP_DEFAULTS[id];
@@ -1914,8 +1948,125 @@ function emoClick(e){
 function setEmo(seg,idx){setEmoByIdx(idx);}
 function setEmoIdx(i){setEmoByIdx(i);}
 
+// ── SIDEBAR DATE PICKER ──
+var _sidebarDate = new Date(); // เริ่มต้นวันนี้
+
+function toggleSidebarDatePopup(){
+  var p = document.getElementById('sidebarDatePopup');
+  if(!p) return;
+  var isOpen = p.style.display !== 'none';
+  p.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen){
+    // sync input value เมื่อเปิด
+    var inp = document.getElementById('sidebarDateInput');
+    if(inp) inp.value = _sidebarDateKey();
+  }
+}
+
+function _sidebarDateKey(){ return dk(_sidebarDate); }
+
+function sidebarDateShift(d){
+  var nd = new Date(_sidebarDate);
+  nd.setDate(nd.getDate() + d);
+  // ไม่ให้เลือกอนาคต
+  var today = new Date(); today.setHours(0,0,0,0);
+  if(nd > today) return;
+  _sidebarDate = nd;
+  _sidebarRefresh();
+}
+
+function sidebarDateChange(val){
+  if(!val) return;
+  var parts = val.split('-');
+  var nd = new Date(parts[0], parts[1]-1, parts[2]);
+  var today = new Date(); today.setHours(0,0,0,0);
+  if(nd > today){ _sidebarDate = today; } else { _sidebarDate = nd; }
+  var p = document.getElementById('sidebarDatePopup');
+  if(p) p.style.display = 'none';
+  _sidebarRefresh();
+}
+
+function sidebarGoToday(){
+  _sidebarDate = new Date();
+  _sidebarRefresh();
+}
+
+function _sidebarRefresh(){
+  var k = _sidebarDateKey();
+  var today = new Date(); today.setHours(0,0,0,0);
+  var sel = new Date(_sidebarDate); sel.setHours(0,0,0,0);
+  var isToday = (sel.getTime() === today.getTime());
+
+  // อัพเดต label
+  var label = document.getElementById('sidebarDateLabel');
+  if(label){
+    if(isToday){
+      label.textContent = '📅 วันนี้';
+    } else {
+      var MABBR2=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      label.textContent = _sidebarDate.getDate()+' '+MABBR2[_sidebarDate.getMonth()]+' '+(_sidebarDate.getFullYear()+543);
+    }
+  }
+
+  // ปุ่ม next — disable ถ้าวันนี้
+  var nextBtn = document.getElementById('sidebarNextBtn');
+  if(nextBtn){ nextBtn.style.opacity = isToday ? '0.3' : '1'; nextBtn.style.pointerEvents = isToday ? 'none' : 'auto'; }
+
+  // ปุ่ม Today — แสดงถ้าไม่ใช่วันนี้
+  var todayBtn = document.getElementById('sidebarTodayBtn');
+  if(todayBtn) todayBtn.style.display = isToday ? 'none' : 'block';
+
+  // sync input value
+  var inp = document.getElementById('sidebarDateInput');
+  if(inp) inp.value = k;
+
+  // โหลดข้อมูลของวันนั้น
+  _loadSidebarDay(k);
+
+  // label ออเดอร์
+  var ordLabel = document.getElementById('sidebarOrdersLabel');
+  if(ordLabel) ordLabel.textContent = isToday ? 'ออเดอร์วันนี้' : 'ออเดอร์ '+k;
+}
+
+function _loadSidebarDay(k){
+  var se = S.sessions[k] || {};
+
+  // emotion
+  var emo = se.emotion || '';
+  var ei = emo ? EMO_LIST.indexOf(emo) : 4; // default Calm
+  if(ei < 0) ei = 4;
+  setEmoByIdx(ei);
+
+  // trend & confirm
+  var rTrend = document.getElementById('rTrend');
+  var rConfirm = document.getElementById('rConfirm');
+  if(rTrend) rTrend.value = se.trend || '';
+  if(rConfirm) rConfirm.value = se.confirm || '';
+
+  // notes
+  var rNotes = document.getElementById('rNotes');
+  if(rNotes) rNotes.value = se.notes || '';
+
+  // session tags
+  var sesActive = (se.sessions || '').split(',').map(function(s){ return s.trim().toLowerCase(); });
+  ['sydney','tokyo','london','newyork'].forEach(function(s){
+    var el = document.getElementById('stag-'+s);
+    if(el){ if(sesActive.indexOf(s)>=0) el.classList.add('active'); else el.classList.remove('active'); }
+  });
+
+  // strategy tags
+  var stratActive = (se.strategies || '').split(',').map(function(s){ return s.trim(); });
+  document.querySelectorAll('#stratRow .tag').forEach(function(el){
+    var txt = el.textContent.trim();
+    if(stratActive.indexOf(txt)>=0) el.classList.add('active'); else el.classList.remove('active');
+  });
+
+  // orders list
+  renderTodayOrders();
+}
+
 function saveEntry(){
-  var k=dk(new Date());
+  var k = _sidebarDateKey();
   var sess=[],strats=[];
   document.querySelectorAll('.sidebar-right .tag.active').forEach(function(t){sess.push(t.textContent.replace(/\s*\d{2}:\d{2}-\d{2}:\d{2}/,'').trim());});
   document.querySelectorAll('#stratRow .tag.active').forEach(function(t){strats.push(t.textContent);});
@@ -1929,12 +2080,39 @@ function saveEntry(){
   showToast('✅ บันทึกแล้ว'+(S.scriptUrl?' → Sheet':' (local)'),'success');
 }
 
+var _mEmoIdx=0;
+function mEmoSetByIdx(i){
+  _mEmoIdx=i;
+  var pct=(i+0.5)/10;
+  var cursor=document.getElementById('mEmoCursor');if(cursor)cursor.style.left=(pct*100)+'%';
+  var left=document.getElementById('mEmoLeft');var center=document.getElementById('mEmoCenter');var right=document.getElementById('mEmoRight');
+  if(left)left.textContent=EMO_LIST[0];
+  if(right)right.textContent=EMO_LIST[9];
+  if(center)center.textContent=EMO_LABELS[i]||'';
+}
+function mEmoHover(e){
+  var bar=document.getElementById('mEmoBar');if(!bar)return;
+  var rect=bar.getBoundingClientRect();var x=e.clientX-rect.left;var pct=Math.max(0,Math.min(1,x/rect.width));var idx=Math.min(9,Math.floor(pct*10));
+  var cursor=document.getElementById('mEmoCursor');if(cursor)cursor.style.left=(pct*100)+'%';
+  var tip=document.getElementById('mEmoTip');if(tip){tip.textContent=EMO_LIST[idx]+' '+EMO_LABELS[idx];tip.style.left=(pct*100)+'%';tip.style.opacity='1';}
+}
+function mEmoLeave(){
+  var tip=document.getElementById('mEmoTip');if(tip)tip.style.opacity='0';
+  var cursor=document.getElementById('mEmoCursor');if(cursor)cursor.style.left=((_mEmoIdx+0.5)/10*100)+'%';
+}
+function mEmoClick(e){
+  var bar=document.getElementById('mEmoBar');if(!bar)return;
+  var rect=bar.getBoundingClientRect();var x=e.clientX-rect.left;var pct=Math.max(0,Math.min(1,x/rect.width));var idx=Math.min(9,Math.floor(pct*10));
+  mEmoSetByIdx(idx);
+}
+
 function openDay(dt){
   S.mKey=dk(dt);S.mTrades=JSON.parse(JSON.stringify(S.trades[S.mKey]||[]));
   document.getElementById('mDayTitle').textContent=fmtD(dt);
   document.getElementById('dComment').value=(S.sessions[S.mKey]||{}).notes||'';
   var savedEmo=(S.sessions[S.mKey]||{}).emotion||'';
-  if(savedEmo){var ei=EMO_LIST.indexOf(savedEmo);if(ei>=0)setEmoByIdx(ei);}
+  if(savedEmo){var ei=EMO_LIST.indexOf(savedEmo);if(ei>=0){setEmoByIdx(ei);mEmoSetByIdx(ei);}else{mEmoSetByIdx(0);}}
+  else{mEmoSetByIdx(4);} // default Calm
   document.getElementById('orderForm').style.display='none';
   document.getElementById('scanResult').style.display='none';
   document.getElementById('upPreview').style.display='none';
@@ -2161,7 +2339,7 @@ function addTrade(){
   document.getElementById('orderForm').style.display='none';
   S.trades[S.mKey]=S.mTrades;
   persistPort();
-  renderTodayOrders();
+  updateStats();renderCal();updateRecent();renderTodayOrders();
   if(S.scriptUrl) sendSheet('saveTrade',Object.assign({date:S.mKey},trade));
   showToast('✅ เพิ่มออเดอร์แล้ว','success');
 }
@@ -2413,6 +2591,7 @@ function updateTrade(){
 function saveDayM(){
   S.trades[S.mKey]=S.mTrades;var se=S.sessions[S.mKey]||{};
   se.notes=document.getElementById('dComment').value;
+  se.emotion=EMO_LIST[_mEmoIdx]||se.emotion||'';
   var pnl=S.mTrades.reduce(function(s,t){return s+(parseFloat(t.pnl)||0);},0);
   var wins=S.mTrades.filter(function(t){return parseFloat(t.pnl)>0;}).length;
   se.netPnl=pnl;se.trades=S.mTrades.length;se.wins=wins;S.sessions[S.mKey]=se;
@@ -3291,7 +3470,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
 function renderTodayOrders(){
   var el=document.getElementById('todayOrdersList');
   if(!el) return;
-  var k=dk(new Date());
+  var k=_sidebarDateKey ? _sidebarDateKey() : dk(new Date());
   var trades=S.trades[k]||[];
   if(!trades.length){
     el.innerHTML='<div style="font-size:11px;color:var(--text-muted);padding:4px 3px;">ยังไม่มีออเดอร์วันนี้</div>';
