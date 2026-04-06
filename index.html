@@ -2187,7 +2187,7 @@ function delTr(i){
   S.trades[S.mKey]=S.mTrades;
   persistPort();
   renderTodayOrders();
-  if(S.scriptUrl&&t&&t.id) sendSheet('deleteTrade',{id:t.id,date:S.mKey});
+  if(S.scriptUrl&&t&&t.id) sendSheet('deleteTrade',{id:t.id,date:S.mKey,portfolio:S.currentPortfolio});
 }
 function editTr(i){
   var t=S.mTrades[i];
@@ -2289,7 +2289,7 @@ function saveDayM(){
   if(S.scriptUrl) sendSheet('saveSession',Object.assign({date:S.mKey},se));
   showToast('✅ บันทึกแล้ว','success');
 }
-function deleteDay(){if(!confirm('ลบข้อมูลวันนี้?')) return;delete S.sessions[S.mKey];delete S.trades[S.mKey];persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();closeM('mDay');if(S.scriptUrl) sendSheet('deleteDay',{date:S.mKey});showToast('🗑 ลบแล้ว','success');}
+function deleteDay(){if(!confirm('ลบข้อมูลวันนี้?')) return;delete S.sessions[S.mKey];delete S.trades[S.mKey];persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();closeM('mDay');if(S.scriptUrl) sendSheet('deleteDay',{date:S.mKey,portfolio:S.currentPortfolio});showToast('🗑 ลบแล้ว','success');}
 
 // AI SCAN
 function triggerUp(){document.getElementById('fileIn').click();}
