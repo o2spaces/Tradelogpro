@@ -40,7 +40,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
   position:fixed;
   left:248px; /* 256 - 8 (half of 16px width) */
   top:50%; transform:translateY(-50%);
-  z-index:300;
+  z-index:150;
   background:var(--accent);
   color:#fff; border:none; cursor:pointer;
   width:16px; height:48px;
@@ -48,7 +48,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
   display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:1px;
   box-shadow:0 2px 12px rgba(0,0,0,0.7);
-  transition:width .15s, left .25s, background .15s, height .15s;
+  transition:width .15s, left .25s, background .15s, height .15s, opacity .2s;
   font-family:var(--font-main);
 }
 #sidebarBtnLeft:hover{
@@ -68,7 +68,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
   position:fixed;
   right:278px; /* 286 - 8 */
   top:50%; transform:translateY(-50%);
-  z-index:300;
+  z-index:150;
   background:var(--accent);
   color:#fff; border:none; cursor:pointer;
   width:16px; height:48px;
@@ -76,7 +76,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
   display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:1px;
   box-shadow:0 2px 12px rgba(0,0,0,0.7);
-  transition:width .15s, right .25s, background .15s, height .15s;
+  transition:width .15s, right .25s, background .15s, height .15s, opacity .2s;
   font-family:var(--font-main);
 }
 #sidebarBtnRight:hover{
@@ -89,6 +89,11 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 }
 #sidebarBtnRight .sb-dot{
   width:3px; height:3px; border-radius:50%; background:rgba(255,255,255,0.6);
+}
+/* Hide sidebar buttons when any modal is open */
+body.modal-open #sidebarBtnLeft,
+body.modal-open #sidebarBtnRight {
+  opacity:0; pointer-events:none;
 }
 
 .sidebar-right-expand,.sidebar-left-expand{display:none!important;}
@@ -284,7 +289,10 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 /* MODALS */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
 .modal-backdrop.open{opacity:1;pointer-events:all;}
-.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;width:600px;max-width:96vw;max-height:91vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s;}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;width:min(600px,94vw);max-width:96vw;max-height:91vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s;}
+/* When sidebars collapse, allow modal to breathe wider */
+.layout.left-collapsed ~ .modal-backdrop .modal,
+.layout.right-collapsed ~ .modal-backdrop .modal { width:min(680px,94vw); }
 .modal-backdrop.open .modal{transform:translateY(0);}
 .modal-wide{width:740px;}
 .modal-header{padding:15px 17px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;}
@@ -675,16 +683,47 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
       <div id="orderForm" style="display:none;">
         <div class="order-form">
           <div class="fg2">
-            <div class="form-field"><label>Asset</label><select class="form-input" id="oAsset" onchange="calcAll()"><option value="">Select Asset</option><option>MNQ1</option><option>NQ1</option><option>MGC1</option><option>GC1</option><option>XAU/USD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>BTCUSD</option></select></div>
+            <div class="form-field">
+              <label style="display:flex;justify-content:space-between;align-items:center;">Asset <button onclick="openDropEdit('oAsset','Asset')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></label>
+              <select class="form-input" id="oAsset" onchange="calcAll()"><option value="">Select Asset</option><option>MNQ1</option><option>NQ1</option><option>MGC1</option><option>GC1</option><option>XAU/USD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>BTCUSD</option></select>
+            </div>
             <div class="form-field"><label>Side <span style="font-size:9px;color:var(--amber)">(auto)</span></label><div class="side-toggle"><button class="side-opt active long" id="sL" onclick="setSide('Long')">↑ Long</button><button class="side-opt short" id="sS" onclick="setSide('Short')">↓ Short</button></div></div>
+          </div>
+          <!-- SESSION + Time in Position on same row (fix 2) -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;align-items:start;">
+            <div>
+              <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">SESSION <span style="font-size:9px;color:var(--text-muted);">เลือกได้อิสระ</span></div>
+              <div id="oSessionTagRow" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;margin-bottom:0;">
+                <span class="tag sydney" id="ostag-sydney" data-sess="sydney" onclick="toggleOrderSession(this,'sydney')" style="font-size:9px;padding:3px 2px;text-align:center;display:block;">SYD</span>
+                <span class="tag tokyo" id="ostag-tokyo" data-sess="tokyo" onclick="toggleOrderSession(this,'tokyo')" style="font-size:9px;padding:3px 2px;text-align:center;display:block;">TKY</span>
+                <span class="tag london" id="ostag-london" data-sess="london" onclick="toggleOrderSession(this,'london')" style="font-size:9px;padding:3px 2px;text-align:center;display:block;">LON</span>
+                <span class="tag newyork" id="ostag-newyork" data-sess="newyork" onclick="toggleOrderSession(this,'newyork')" style="font-size:9px;padding:3px 2px;text-align:center;display:block;">NY</span>
+              </div>
+              <div id="oSessionAIHint" style="font-size:9px;color:var(--green);margin-top:2px;display:none;">🤖 AI ตรวจจับแล้ว</div>
+            </div>
+            <div class="form-field">
+              <label>Time in Position <span style="font-size:9px;color:var(--amber)">(auto)</span></label>
+              <input class="form-input" id="oTimePos" placeholder="--" readonly style="opacity:.7;">
+            </div>
+          </div>
+          <!-- Entry/Close Date & Time -->
+          <div class="fg2">
+            <div class="form-field"><label>Entry Date &amp; Time</label><input class="form-input" id="oEntryDate" type="datetime-local" oninput="calcTimeInPos();autoDetectSession()"></div>
+            <div class="form-field"><label>Close Date &amp; Time</label><input class="form-input" id="oCloseDate" type="datetime-local" oninput="calcTimeInPos();checkBEClose()"></div>
           </div>
           <div class="fg3">
             <div class="form-field"><label>Entry</label><input class="form-input" id="oEntry" type="number" step="any" placeholder="1920.50" oninput="calcAll()"></div>
             <div class="form-field"><label>TP</label><input class="form-input" id="oTP" type="number" step="any" placeholder="1935.00" oninput="calcAll()"></div>
-            <div class="form-field"><label>SL</label><input class="form-input" id="oSL" type="number" step="any" placeholder="1915.00" oninput="calcAll()"></div>
+            <div class="form-field">
+              <label>SL <span id="oSLPoint" style="font-size:10px;color:var(--amber);font-family:var(--font-mono);"></span></label>
+              <input class="form-input" id="oSL" type="number" step="any" placeholder="1915.00" oninput="calcAll()">
+            </div>
           </div>
           <div class="fg3">
-            <div class="form-field"><label>Risk ($)</label><input class="form-input" id="oRisk" type="number" step="any" placeholder="50" oninput="calcRiskLots()"></div>
+            <div class="form-field">
+              <label style="display:flex;align-items:center;gap:4px;">Risk ($) <span id="oRiskWarnDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;" title="Risk เกิน!"></span></label>
+              <input class="form-input" id="oRisk" type="number" step="any" placeholder="50" oninput="calcRiskLots()" style="transition:border-color .2s;">
+            </div>
             <div class="form-field"><label>Lots <span style="font-size:9px;color:var(--amber)">(auto)</span></label><input class="form-input" id="oLots" type="number" step="0.01" placeholder="1.00" oninput="calcAll()"></div>
             <div class="form-field"><label>Commission <span style="font-size:9px;color:var(--amber)">(auto)</span></label><input class="form-input" id="oComm" type="number" placeholder="auto" readonly style="opacity:.7;"></div>
           </div>
@@ -762,32 +801,30 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
               </select>
             </div>
           </div>
-          <!-- TREND + ZONE + SESSION + CONFIRM moved into Add Entry -->
-          <div class="fg2" style="margin-bottom:8px;">
-            <div>
-              <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">TREND <button onclick="openDropEdit('oTrend','TREND')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
-              <select class="form-input" id="oTrend"><option value="">Select</option><option>Bullish</option><option>Bearish</option><option>Sideways</option></select>
-            </div>
-            <div>
-              <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">ZONE <button onclick="openDropEdit('oZone','ZONE')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
-              <select class="form-input" id="oZone"><option value="">Select</option><option>Demand</option><option>Supply</option><option>FVG</option><option>iFVG</option><option>IDM</option><option>OB</option><option>POI</option></select>
-            </div>
-          </div>
+          <!-- TREND + ZONE + CONFIRM collapse group — collapsed by default (fix 3) -->
           <div style="margin-bottom:8px;">
-            <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">CONFIRM <button onclick="openDropEdit('oConfirm','CONFIRM')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
-            <select class="form-input" id="oConfirm"><option value="">Select</option><option>M1</option><option>M5</option><option>M15</option><option>M30</option><option>H1</option><option>H4</option><option>SMC</option><option>Price Action</option><option>FIBO</option></select>
-          </div>
-          <!-- SESSION in Add Entry — free select, AI detects from image -->
-          <div style="margin-bottom:8px;">
-            <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">SESSION (ออเดอร์) <span style="font-size:9px;color:var(--text-muted);">เลือกได้อิสระ</span></div>
-            <div class="tag-row" id="oSessionTagRow" style="margin-bottom:0;">
-              <span class="tag sydney" id="ostag-sydney" data-sess="sydney" onclick="toggleOrderSession(this,'sydney')">Sydney</span>
-              <span class="tag tokyo" id="ostag-tokyo" data-sess="tokyo" onclick="toggleOrderSession(this,'tokyo')">Tokyo</span>
-              <span class="tag london" id="ostag-london" data-sess="london" onclick="toggleOrderSession(this,'london')">London</span>
-              <span class="tag newyork" id="ostag-newyork" data-sess="newyork" onclick="toggleOrderSession(this,'newyork')">New York</span>
+            <div onclick="toggleTZC()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 9px;font-size:11px;font-weight:500;color:var(--text-secondary);user-select:none;" id="tzcHeader">
+              <span>📊 TREND / ZONE / CONFIRM</span>
+              <span id="tzcArrow" style="font-size:10px;transition:transform .2s;transform:rotate(-90deg);">▼</span>
             </div>
-            <div id="oSessionAIHint" style="font-size:9px;color:var(--green);margin-top:3px;display:none;">🤖 AI ตรวจจับ Session จากเวลาออเดอร์แล้ว</div>
+            <div id="tzcBody" style="margin-top:6px;display:none;">
+              <div class="fg2" style="margin-bottom:8px;">
+                <div>
+                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">TREND <button onclick="openDropEdit('oTrend','TREND')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+                  <select class="form-input" id="oTrend"><option value="">Select</option><option>Bullish</option><option>Bearish</option><option>Sideways</option></select>
+                </div>
+                <div>
+                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">ZONE <button onclick="openDropEdit('oZone','ZONE')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+                  <select class="form-input" id="oZone"><option value="">Select</option><option>Demand</option><option>Supply</option><option>FVG</option><option>iFVG</option><option>IDM</option><option>OB</option><option>POI</option></select>
+                </div>
+              </div>
+              <div style="margin-bottom:8px;">
+                <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">CONFIRM <button onclick="openDropEdit('oConfirm','CONFIRM')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+                <select class="form-input" id="oConfirm"><option value="">Select</option><option>M1</option><option>M5</option><option>M15</option><option>M30</option><option>H1</option><option>H4</option><option>SMC</option><option>Price Action</option><option>FIBO</option></select>
+              </div>
+            </div>
           </div>
+
           <!-- Emotional slider for order -->
           <div style="margin-bottom:8px;">
             <div class="field-label">Emotional ตอนเข้าออเดอร์ <span id="oEmoLabel" style="color:var(--amber);font-size:10px;font-family:var(--font-mono);">5 - Calm</span></div>
@@ -801,16 +838,12 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
             <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-top:1px;"><span>❌ 1</span><span>✅ 5</span><span>💎 10</span></div>
           </div>
           <div class="fg2">
-            <div class="form-field"><label>Entry Date &amp; Time</label><input class="form-input" id="oEntryDate" type="datetime-local" oninput="calcTimeInPos();autoDetectSession()"></div>
-            <div class="form-field"><label>Close Date &amp; Time</label><input class="form-input" id="oCloseDate" type="datetime-local" oninput="calcTimeInPos();checkBEClose()"></div>
-          </div>
-          <div class="fg2">
-            <div class="form-field"><label>Time in Position <span style="font-size:9px;color:var(--amber)">(auto)</span></label><input class="form-input" id="oTimePos" placeholder="--" readonly style="opacity:.7;"></div>
             <div class="form-field"><label>Note</label><input class="form-input" id="oNote" placeholder="e.g. OB entry"></div>
-          </div>
-          <div class="fg2">
-            <div class="form-field"><label>🖼️ Image Link</label><input class="form-input" id="oImgLink" placeholder="https://...image URL..." type="url" oninput="previewImgLink(this.value)"></div>
-            <div class="form-field"><label>&nbsp;</label><div id="oImgPreview" style="display:none;margin-top:2px;"><a id="oImgAnchor" href="#" target="_blank" style="font-size:10px;color:var(--accent);">🔗 ดูรูป</a></div></div>
+            <div class="form-field">
+              <label>🖼️ Image Link</label>
+              <input class="form-input" id="oImgLink" placeholder="https://...image URL..." type="url" oninput="previewImgLink(this.value)">
+              <div id="oImgPreview" style="display:none;margin-top:2px;"><a id="oImgAnchor" href="#" target="_blank" style="font-size:10px;color:var(--accent);">🔗 ดูรูป</a></div>
+            </div>
           </div>
           <div class="calc-bar" id="calcBar">Side: <span id="cSide" style="color:var(--amber)">-</span> &nbsp;|&nbsp; Risk: <span id="cPos">-</span> &nbsp;|&nbsp; R:R <span id="cRR">-</span> &nbsp;|&nbsp; Comm: <span id="cComm">$0.00</span></div>
           <div style="display:flex;gap:7px;margin-top:8px;"><button class="btn-primary" onclick="addTrade()">✓ Add Trade</button><button class="btn-sm" onclick="toggleOF()">Cancel</button></div>
@@ -866,19 +899,20 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
 <div class="modal">
   <div class="modal-header"><div><div class="modal-title">🔗 Google Sheet</div><div class="modal-subtitle">เชื่อมต่อกับ Google Sheet</div></div><button class="modal-close" onclick="closeM('mSheet')">✕</button></div>
   <div class="modal-body">
-    <div class="info-box"><span class="step-n">1</span>เปิด Google Sheet → Extensions → Apps Script<br><span class="step-n">2</span>วางโค้ดด้านล่าง → กด <strong>setupSheets()</strong> รันครั้งแรก<br><span class="step-n">3</span>Deploy → Web App → Execute as: <strong>Me</strong> → Access: <strong>Anyone</strong><br><span class="step-n">4</span>Copy URL → วางด้านล่าง → Save &amp; Test<br><span style="font-size:10px;color:var(--amber);margin-top:4px;display:block;">⚡ Sheets ที่สร้าง: Trades | Sessions | Summary | Log — รองรับ บันทึก/แก้ไข/ลบ ทุก action</span></div>
+    <div class="info-box"><span class="step-n">1</span>เปิด Google Sheet → Extensions → Apps Script<br><span class="step-n">2</span>วางโค้ดด้านล่าง → กด <strong>setupSheets()</strong> รันครั้งแรก<br><span class="step-n">3</span>Deploy → Web App → Execute as: <strong>Me</strong> → Access: <strong>Anyone</strong><br><span class="step-n">4</span>Copy URL → วางด้านล่าง → Save &amp; Test<br><span style="font-size:10px;color:var(--amber);margin-top:4px;display:block;">⚡ Sheets ที่สร้าง: Trades | Sessions | Summary | Assets | Log — รองรับ บันทึก/แก้ไข/ลบ + Custom Assets sync</span></div>
     <div class="field-label">Apps Script URL</div>
     <input class="settings-input" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec">
     <div style="margin-top:10px;"><div class="field-label" style="margin-bottom:5px;">📋 Code:</div>
     <div class="code-block">/* =========================================
-   TradeLog Pro — Google Apps Script v3
+   TradeLog Pro — Google Apps Script v4
    รองรับ: Portfolio | Candle | Mode | TF
            Trend | Zone | Confirm | Sessions
            Emotion | Discipline | MaxRR | SetupClass
-   Sheet: Trades | Sessions | Summary | Log
+           Custom Assets (saveAssets/loadAssets)
+   Sheet: Trades | Sessions | Summary | Assets | Log
    ========================================= */
 
-var SHEET={TRADES:'Trades',SESSIONS:'Sessions',SUMMARY:'Summary',LOG:'Log'};
+var SHEET={TRADES:'Trades',SESSIONS:'Sessions',SUMMARY:'Summary',ASSETS:'Assets',LOG:'Log'};
 var HDR={
   TRADES:[
     'ID','Date','Portfolio','Asset','Side','Lots','Entry','Close','TP','SL',
@@ -900,11 +934,14 @@ var HDR={
     'ProfitFactor','MaxDD($)','BestTrade($)','WorstTrade($)',
     'Emotion','Sessions','UpdatedAt'
   ],
+  ASSETS:['Asset','UpdatedAt'],
   LOG:['Time','Action','Detail']
 };
 
-function doGet(){
-  return _json({status:'ready',version:'3.0',time:new Date().toISOString()});
+function doGet(e){
+  var p=e&&e.parameter;
+  if(p&&p.action==='loadAssets') return _json(loadAssets());
+  return _json({status:'ready',version:'4.0',time:new Date().toISOString()});
 }
 
 function doPost(e){
@@ -916,9 +953,27 @@ function doPost(e){
     else if(d.action==='deleteTrade')  res=deleteTrade(d);
     else if(d.action==='saveSession')  res=saveSession(d);
     else if(d.action==='deleteDay')    res=deleteDay(d);
+    else if(d.action==='saveAssets')   res=saveAssets(d);
     else res={status:'error',msg:'unknown action'};
     return _json(res);
   }catch(err){_log('ERROR',err.toString());return _json({status:'error',msg:err.toString()});}
+}
+
+/* ── SAVE / LOAD ASSETS ── */
+function saveAssets(d){
+  var sh=_sheet(SHEET.ASSETS,HDR.ASSETS);
+  var assets=d.assets||[];
+  // Clear existing data rows
+  if(sh.getLastRow()>1) sh.deleteRows(2,sh.getLastRow()-1);
+  var now=_now();
+  assets.forEach(function(a){sh.appendRow([a,now]);});
+  return {status:'ok',count:assets.length};
+}
+function loadAssets(){
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.ASSETS);
+  if(!sh||sh.getLastRow()<2) return {status:'ok',assets:[]};
+  var assets=sh.getRange(2,1,sh.getLastRow()-1,1).getValues().map(function(r){return r[0];}).filter(Boolean);
+  return {status:'ok',assets:assets};
 }
 
 /* ── SAVE / UPDATE TRADE ── */
@@ -1116,11 +1171,12 @@ function setupSheets(){
   _sheet(SHEET.TRADES,HDR.TRADES);
   _sheet(SHEET.SESSIONS,HDR.SESSIONS);
   _sheet(SHEET.SUMMARY,HDR.SUMMARY);
+  _sheet(SHEET.ASSETS,HDR.ASSETS);
   _sheet(SHEET.LOG,HDR.LOG);
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var def=ss.getSheetByName('Sheet1');
   if(def&amp;&amp;ss.getSheets().length>1) ss.deleteSheet(def);
-  SpreadsheetApp.getUi().alert('✅ TradeLog Pro v3 พร้อม!\n\nSheets: Trades | Sessions | Summary | Log\nรองรับ Multi-Portfolio + Fields ใหม่ทั้งหมด');
+  SpreadsheetApp.getUi().alert('✅ TradeLog Pro v4 พร้อม!\n\nSheets: Trades | Sessions | Summary | Assets | Log\nรองรับ Multi-Portfolio + Custom Assets + Fields ใหม่ทั้งหมด');
 }
 function onOpen(){
   SpreadsheetApp.getUi().createMenu('🔧 TradeLog Pro')
@@ -1128,8 +1184,7 @@ function onOpen(){
     .addItem('📊 Refresh All Summaries','refreshAll')
     .addItem('🗑 Clear Log','clearLog')
     .addToUi();
-}
-function refreshAll(){
+}function refreshAll(){
   var ts=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.TRADES);
   if(!ts){SpreadsheetApp.getUi().alert('ไม่พบ Sheet Trades');return;}
   var done={};
@@ -1378,6 +1433,8 @@ function clearLog(){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 var COMM={GC1:3.24,MGC1:1.24,NQ1:2.80,MNQ1:0.74,'XAU/USD':0,EURUSD:0,GBPUSD:0,USDJPY:0,BTCUSD:0};
+// Point/tick size per asset (for SL distance display in points, fix 5)
+var TICK_SIZE={MNQ1:0.25,NQ1:0.25,MGC1:0.1,GC1:0.1,'XAU/USD':0.01,EURUSD:0.00001,GBPUSD:0.00001,USDJPY:0.001,BTCUSD:1};
 var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 var MABBR=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 var S={sessions:{},trades:{},scriptUrl:'',keys:{mGem:'gemini-2.5-flash-preview-05-20',mGroq:'llama-4-scout-17b-16e-instruct'},prov:'gemini',provBackup:'groq',viewMonth:new Date(),viewYear:new Date().getFullYear(),emo:'😡',side:'Long',mKey:'',mTrades:[],upB64:null,eqChart:null,eqChartW:null,currentPortfolio:'default',portfolios:{}};
@@ -1462,14 +1519,14 @@ function renderPortfolioBar(){
   Object.keys(ports).forEach(function(id){
     var p=ports[id];
     var isActive=id===S.currentPortfolio;
-    // calc balance from trades in that portfolio
     var portTrades={};
     try{portTrades=JSON.parse(localStorage.getItem('port_'+id+'_t')||'{}');}catch(e){}
     var bal=Object.values(portTrades).reduce(function(sum,arr){return sum+arr.reduce(function(s,t){return s+(parseFloat(t.pnl)||0);},0);},0);
     var balStr=(bal>=0?'+':'')+'$'+Math.abs(bal).toFixed(2);
-    html+='<div class="port-tab'+(isActive?' active':'')+'" data-port-id="'+id+'" onclick="switchPortfolio(\''+id+'\')" ondblclick="editPortfolio(\''+id+'\')" title="Double-click เพื่อแก้ไข">'
+    html+='<div class="port-tab'+(isActive?' active':'')+'" data-port-id="'+id+'" onclick="switchPortfolio(\''+id+'\')" title="คลิกเพื่อเปลี่ยนพอร์ต" style="position:relative;padding-right:22px;">'
       +'<span>📁 '+escHtml(p.name)+(p.fund?' <span style="font-size:9px;color:var(--text-muted);">['+escHtml(p.fund)+']</span>':'')+'</span>'
-      +'<span class="port-bal" id="port-bal-'+id+'">'+(isActive?balStr:balStr)+'</span>'
+      +'<span class="port-bal" id="port-bal-'+id+'">'+balStr+'</span>'
+      +'<button onclick="event.stopPropagation();editPortfolio(\''+id+'\')" title="แก้ไขพอร์ต" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;padding:1px 3px;border-radius:3px;line-height:1;transition:color .15s;" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--text-muted)\'">✎</button>'
       +'</div>';
   });
   html+='<button class="port-add-btn" onclick="addPortfolio()">+ พอร์ต</button>';
@@ -1489,7 +1546,7 @@ function addPortfolio(){
     +'<button class="btn-sm" onclick="this.closest(\'div[style*=fixed]\').remove()">Cancel</button>'
     +'</div></div>';
   document.body.appendChild(modal);
-  modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+  modal.addEventListener('mousedown',function(e){modal._mdOnBack=(e.target===modal);});modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._mdOnBack)modal.remove();modal._mdOnBack=false;});
   setTimeout(function(){var el=document.getElementById('newPortName');if(el)el.focus();},50);
 }
 function confirmAddPortfolio(btn){
@@ -1521,7 +1578,7 @@ function editPortfolio(id){
     +(id!=='default'?'<button style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:var(--radius-sm);padding:4px 9px;font-size:11px;cursor:pointer;" onclick="deletePortfolio(\''+id+'\',this)">🗑 ลบ</button>':'')
     +'</div></div>';
   document.body.appendChild(modal);
-  modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+  modal.addEventListener('mousedown',function(e){modal._mdOnBack=(e.target===modal);});modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._mdOnBack)modal.remove();modal._mdOnBack=false;});
 }
 function confirmEditPortfolio(id,btn){
   var name=(document.getElementById('editPortName').value||'').trim();
@@ -1551,6 +1608,7 @@ function deletePortfolio(id,btn){
 var DROP_DEFAULTS = {
   rTrend:   ['Bullish','Bearish','Sideways'],
   rConfirm: ['M1','M5','M15','M30','H1','H4','SMC','Price Action','FIBO'],
+  oAsset:   ['MNQ1','NQ1','MGC1','GC1','XAU/USD','EURUSD','GBPUSD','USDJPY','BTCUSD'],
   oTrend:   ['Bullish','Bearish','Sideways'],
   oZone:    ['Demand','Supply','FVG','iFVG','IDM','OB','POI'],
   oConfirm: ['M1','M5','M15','M30','H1','H4','SMC','Price Action','FIBO'],
@@ -1567,12 +1625,20 @@ function loadDropOptions(){
     opts.forEach(function(v){
       var o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
     });
+    // Sync POINT_VAL and COMM for custom assets
+    if(id==='oAsset'){
+      opts.forEach(function(v){
+        if(!POINT_VAL[v]) POINT_VAL[v]=1;
+      });
+    }
   });
 }
 function saveDropOptions(selectId){
   var sel=document.getElementById(selectId); if(!sel) return;
   var opts=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
   localStorage.setItem('tj_drop_'+selectId, JSON.stringify(opts));
+  // Sync asset list to Sheet when oAsset changes (item 4)
+  if(selectId==='oAsset') saveAssetsToSheet();
 }
 function pad(n){return n<10?'0'+n:''+n;}
 function dk(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -1857,9 +1923,19 @@ function openDay(dt){
   document.getElementById('oDiscSlider').value=5;updateOrderDisc(5);
   var warn=document.getElementById('riskWarnBar');if(warn)warn.style.display='none';
   document.getElementById('mDay').classList.add('open');
+  document.body.classList.add('modal-open');
 }
 function openDayByKey(k){var p=k.split('-');openDay(new Date(p[0],p[1]-1,p[2]));}
-function closeM(id){document.getElementById(id).classList.remove('open');}
+function closeM(id){
+  document.getElementById(id).classList.remove('open');
+  // Remove modal-open from body only if no other modals open
+  var anyOpen=document.querySelectorAll('.modal-backdrop.open').length>0;
+  if(!anyOpen) document.body.classList.remove('modal-open');
+}
+function openM(id){
+  document.getElementById(id).classList.add('open');
+  document.body.classList.add('modal-open');
+}
 function mTab(el,id){document.querySelectorAll('.modal-tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');mTabById(id);}
 function mTabById(id){['tComment','tOrder','tAnalysis'].forEach(function(t){document.getElementById(t).style.display=t===id?'block':'none';});}
 
@@ -1873,24 +1949,33 @@ function setResult(r){
   if(sel) sel.value=r;
 }
 function autoSide(){var en=parseFloat(document.getElementById('oEntry').value)||0,cl=parseFloat(document.getElementById('oClose').value)||0,sl=parseFloat(document.getElementById('oSL').value)||0,tp=parseFloat(document.getElementById('oTP').value)||0;if(en&&sl){setSide(en>sl?'Long':'Short');}}
+var FUTURES_ASSETS={MNQ1:true,NQ1:true,MGC1:true,GC1:true};
 function calcRiskLots(){
   var risk=parseFloat(document.getElementById('oRisk').value)||0;
   var en=parseFloat(document.getElementById('oEntry').value)||0,sl=parseFloat(document.getElementById('oSL').value)||0;
   var asset=document.getElementById('oAsset').value;
-  if(risk&&en&&sl&&asset){var diff=Math.abs(en-sl);var pv=POINT_VAL[asset]||1;if(diff>0){var lots=(risk/(diff*pv));document.getElementById('oLots').value=lots.toFixed(2);}}
+  if(risk&&en&&sl&&asset){var diff=Math.abs(en-sl);var pv=POINT_VAL[asset]||1;if(diff>0){var lots=(risk/(diff*pv));if(FUTURES_ASSETS[asset]&&lots<1) lots=1;document.getElementById('oLots').value=lots.toFixed(2);}}
   calcAll();
 }
 function calcPnl(){
   var en=parseFloat(document.getElementById('oEntry').value)||0;
   var cl=parseFloat(document.getElementById('oClose').value)||0;
+  var tp=parseFloat(document.getElementById('oTP').value)||0;
+  var sl=parseFloat(document.getElementById('oSL').value)||0;
   var lots=parseFloat(document.getElementById('oLots').value)||0;
   var asset=document.getElementById('oAsset').value;
-  if(en&&cl&&lots&&asset){
+  if(en&&lots&&asset){
     var pv=POINT_VAL[asset]||1;
     var dir=(S.side==='Long')?1:-1;
-    var pnl=(cl-en)*lots*pv*dir;
-    document.getElementById('oPnl').value=pnl.toFixed(2);
-    updateResult();
+    var refPrice=cl||0;
+    // If no close price but TP exists and result is Win, use TP; if SL and Loss, use SL
+    if(!refPrice&&tp&&S_result==='Win') refPrice=tp;
+    if(!refPrice&&sl&&S_result==='Loss') refPrice=sl;
+    if(refPrice){
+      var pnl=(refPrice-en)*lots*pv*dir;
+      document.getElementById('oPnl').value=pnl.toFixed(2);
+      if(cl) updateResult();
+    }
   }
   autoSide();
 }
@@ -1909,6 +1994,14 @@ function calcAll(){
   document.getElementById('oComm').value=comm;
   document.getElementById('cComm').textContent='$'+comm;
   var en=parseFloat(document.getElementById('oEntry').value)||0,sl=parseFloat(document.getElementById('oSL').value)||0,tp=parseFloat(document.getElementById('oTP').value)||0;
+  // Show SL Point in ticks/points (fix 5: NQ/MNQ 1 point = 0.25)
+  var slPtEl=document.getElementById('oSLPoint');
+  if(slPtEl&&en&&sl){
+    var slDist=Math.abs(en-sl);
+    var tick=TICK_SIZE[asset]||0.01;
+    var slPts=(slDist/tick).toFixed(0);
+    slPtEl.textContent='('+slPts+' pts)';
+  } else if(slPtEl) slPtEl.textContent='';
   var bar=document.getElementById('calcBar');
   if(en&&sl){
     var side=en>sl?'Long':'Short';
@@ -1920,14 +2013,21 @@ function calcAll(){
     document.getElementById('cPos').textContent=lots?'$'+actualRisk.toFixed(2):'-';
     document.getElementById('cRR').textContent=rr;
     bar.style.display='block';
-    // Risk warning
+    // Risk warning — red on Risk field + warn bar (items 6)
     var maxRisk=parseFloat(document.getElementById('oRisk').value)||0;
     var warn=document.getElementById('riskWarnBar');
-    if(warn&&maxRisk&&actualRisk&&actualRisk>maxRisk*1.05){
-      warn.style.display='block';
-      warn.textContent='⚠️ SL ระยะเกิน Risk ที่ตั้งไว้! ($'+actualRisk.toFixed(2)+' > $'+maxRisk.toFixed(2)+') ตรวจสอบ Lot Size';
-    } else if(warn){warn.style.display='none';}
-  } else { bar.style.display='none';var warn=document.getElementById('riskWarnBar');if(warn)warn.style.display='none'; }
+    var riskInp=document.getElementById('oRisk');
+    var riskDot=document.getElementById('oRiskWarnDot');
+    if(maxRisk&&actualRisk&&actualRisk>maxRisk*1.05){
+      if(warn){warn.style.display='block';warn.textContent='⚠️ SL ระยะเกิน Risk ที่ตั้งไว้! ($'+actualRisk.toFixed(2)+' > $'+maxRisk.toFixed(2)+') ตรวจสอบ Lot Size';}
+      if(riskInp){riskInp.style.borderColor='var(--red)';riskInp.style.color='var(--red)';}
+      if(riskDot) riskDot.style.display='inline-block';
+    } else {
+      if(warn) warn.style.display='none';
+      if(riskInp){riskInp.style.borderColor='';riskInp.style.color='';}
+      if(riskDot) riskDot.style.display='none';
+    }
+  } else { bar.style.display='none';var warn=document.getElementById('riskWarnBar');if(warn)warn.style.display='none';var ri=document.getElementById('oRisk');if(ri){ri.style.borderColor='';ri.style.color='';}var rd=document.getElementById('oRiskWarnDot');if(rd)rd.style.display='none'; }
   calcPnl();
 }
 function previewImgLink(v){
@@ -1999,19 +2099,33 @@ function autoDetectSession(){
   }
 }
 
+// Toggle TZC collapse (item 7) — starts collapsed
+var _tzcOpen=false;
+function toggleTZC(){
+  _tzcOpen=!_tzcOpen;
+  var body=document.getElementById('tzcBody');
+  var arrow=document.getElementById('tzcArrow');
+  if(body) body.style.display=_tzcOpen?'block':'none';
+  if(arrow) arrow.style.transform=_tzcOpen?'rotate(0deg)':'rotate(-90deg)';
+}
+
 // Toggle order session (free select, no time restriction)
 function toggleOrderSession(el,sess){
   el.classList.toggle('active');
 }
 
-// Check if close == entry/TP → suggest BE
+// Check if close == entry/TP → auto result
 function checkBEClose(){
   var cl=parseFloat(document.getElementById('oClose').value)||0;
   var en=parseFloat(document.getElementById('oEntry').value)||0;
   var tp=parseFloat(document.getElementById('oTP').value)||0;
-  if(cl&&en&&(Math.abs(cl-en)<0.01||(tp&&Math.abs(cl-tp)<0.01))){
+  var sl=parseFloat(document.getElementById('oSL').value)||0;
+  if(cl&&tp&&Math.abs(cl-tp)<0.01){
+    setResult('Win');
+    showToast('💡 Close = TP → ตั้ง Result เป็น Win อัตโนมัติ','success');
+  } else if(cl&&en&&Math.abs(cl-en)<0.01){
     setResult('BE');
-    showToast('💡 Close ≈ Entry/TP → ตั้ง Result เป็น BE อัตโนมัติ','');
+    showToast('💡 Close ≈ Entry → ตั้ง Result เป็น BE อัตโนมัติ','');
   }
 }
 
@@ -2382,7 +2496,7 @@ async function doScan(){
 }
 
 // AI CHAT
-function openAI(){document.getElementById('mAI').classList.add('open');}
+function openAI(){document.getElementById('mAI').classList.add('open');document.body.classList.add('modal-open');}
 async function askAI(q){document.getElementById('aiInp').value=q;await sendChat();}
 async function sendChat(){
   var q=document.getElementById('aiInp').value.trim();if(!q) return;
@@ -2472,7 +2586,7 @@ function renderProviderRows(){
 }
 function openAPI(){
   try{
-    document.getElementById('mAPI').classList.add('open');
+    document.getElementById('mAPI').classList.add('open');document.body.classList.add('modal-open');
     var safe=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
     safe('kAnt',S.keys['anthropic']);
     safe('kOAI',S.keys['openai']);
@@ -2569,17 +2683,41 @@ async function testAPI(){
 }
 
 // SHEET
-function openSheet(){document.getElementById('mSheet').classList.add('open');document.getElementById('sheetUrl').value=S.scriptUrl;}
+function openSheet(){document.getElementById('mSheet').classList.add('open');document.body.classList.add('modal-open');document.getElementById('sheetUrl').value=S.scriptUrl;}
 function saveSheet(){S.scriptUrl=document.getElementById('sheetUrl').value.trim();localStorage.setItem('tj_url',S.scriptUrl);testSheet();}
 function testSheet(){var url=document.getElementById('sheetUrl').value.trim();if(!url){document.getElementById('sheetRes').textContent='ใส่ URL ก่อน';return;}document.getElementById('sheetRes').textContent='กำลังทดสอบ...';fetch(url).then(function(r){return r.json();}).then(function(d){if(d.status==='ready'){setConn(true);document.getElementById('sheetRes').style.color='var(--green)';document.getElementById('sheetRes').textContent='✅ เชื่อมต่อสำเร็จ!';showToast('✅ Google Sheet พร้อม','success');}}).catch(function(){document.getElementById('sheetRes').style.color='var(--red)';document.getElementById('sheetRes').textContent='❌ เชื่อมต่อไม่ได้';});}
-function setConn(ok){var d=document.getElementById('sDot'),t=document.getElementById('sTxt');if(ok){d.classList.add('connected');t.textContent='Connected';t.style.color='var(--green)';}else{d.classList.remove('connected');t.textContent='Offline';t.style.color='var(--text-muted)';}}
+function setConn(ok){var d=document.getElementById('sDot'),t=document.getElementById('sTxt');if(ok){d.classList.add('connected');t.textContent='Connected';t.style.color='var(--green)';loadAssetsFromSheet();}else{d.classList.remove('connected');t.textContent='Offline';t.style.color='var(--text-muted)';}}
 function sendSheet(action,data){
   if(!S.scriptUrl)return;
-  var icons={saveTrade:'📊',saveSession:'📝',deleteTrade:'🗑',deleteDay:'🗑'};
+  var icons={saveTrade:'📊',saveSession:'📝',deleteTrade:'🗑',deleteDay:'🗑',saveAssets:'🗂️'};
   var payload=Object.assign({action:action, portfolio:S.currentPortfolio}, data);
   fetch(S.scriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(){showToast((icons[action]||'📊')+' Sheet: '+action+' OK','success');})
     .catch(function(err){showToast('⚠ Sheet error: '+err.message,'error');});
+}
+// Sync Asset list to/from Sheet (item 4)
+function saveAssetsToSheet(){
+  if(!S.scriptUrl) return;
+  var sel=document.getElementById('oAsset'); if(!sel) return;
+  var assets=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
+  sendSheet('saveAssets',{assets:assets});
+}
+function loadAssetsFromSheet(){
+  if(!S.scriptUrl) return;
+  fetch(S.scriptUrl+'?action=loadAssets')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.status==='ok'&&d.assets&&d.assets.length){
+        // Merge with localStorage, sheet wins
+        localStorage.setItem('tj_drop_oAsset', JSON.stringify(d.assets));
+        var sel=document.getElementById('oAsset'); if(!sel) return;
+        Array.from(sel.options).forEach(function(o){if(o.value!=='')o.remove();});
+        d.assets.forEach(function(v){
+          var o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);
+          if(!POINT_VAL[v]) POINT_VAL[v]=1;
+        });
+      }
+    }).catch(function(){});
 }
 function copyCode(){
   var raw=document.querySelector('.code-block').innerHTML;
@@ -2856,7 +2994,7 @@ function openDropEdit(selectId, label){
     var inp=document.getElementById('deInput');
     if(inp) inp.addEventListener('keydown',function(e){ if(e.key==='Enter') deAddOpt(selectId); });
   },0);
-  modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+  modal.addEventListener('mousedown',function(e){modal._mdOnBack=(e.target===modal);});modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._mdOnBack)modal.remove();modal._mdOnBack=false;});
 }
 function deResetOpts(selectId){
   if(!confirm('รีเซ็ตกลับค่าเริ่มต้น?')) return;
@@ -2936,8 +3074,19 @@ function toggleTheme(){document.body.setAttribute('data-theme',document.body.get
 var _tt=null;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type||'');clearTimeout(_tt);_tt=setTimeout(function(){t.className='toast';},3000);}
 
-// BACKDROP CLOSE
-['mDay','mAI','mSheet','mAPI'].forEach(function(id){document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeM(id);});});
+// BACKDROP CLOSE — use mousedown+mouseup to avoid closing on text-drag (fix 3)
+// We track where mousedown started; only close if BOTH mousedown AND mouseup are on the backdrop itself
+(function(){
+  var _mdTarget=null;
+  document.addEventListener('mousedown',function(e){_mdTarget=e.target;});
+  ['mDay','mAI','mSheet','mAPI'].forEach(function(id){
+    var el=document.getElementById(id);
+    el.addEventListener('mouseup',function(e){
+      // Close only if mousedown AND mouseup both landed directly on the backdrop (not inside modal)
+      if(e.target===this && _mdTarget===this) closeM(id);
+    });
+  });
+})();
 
 // TODAY'S ORDERS in right sidebar
 function renderTodayOrders(){
