@@ -573,11 +573,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
   <div class="section-label">Analysis</div>
   <div class="field-grid">
     <div>
-      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">TREND <button onclick="openDropEdit('rTrend','TREND')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Trend <button onclick="openDropEdit('rTrend','Trend')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
       <select class="field-select" id="rTrend"><option value="">Select</option><option>Bullish</option><option>Bearish</option><option>Sideways</option></select>
     </div>
     <div>
-      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">CONFIRM <button onclick="openDropEdit('rConfirm','CONFIRM')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Confirm <button onclick="openDropEdit('rConfirm','Confirm')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
       <select class="field-select" id="rConfirm"><option value="">Select</option><option>M1</option><option>M5</option><option>M15</option><option>M30</option><option>H1</option><option>H4</option><option>SMC</option><option>Price Action</option><option>FIBO</option></select>
     </div>
   </div>
@@ -806,22 +806,22 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
           <!-- TREND + ZONE + CONFIRM collapse group — collapsed by default (fix 3) -->
           <div style="margin-bottom:8px;">
             <div onclick="toggleTZC()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 9px;font-size:11px;font-weight:500;color:var(--text-secondary);user-select:none;" id="tzcHeader">
-              <span>📊 TREND / ZONE / CONFIRM</span>
+              <span>📊 Trend / Zone / Confirm</span>
               <span id="tzcArrow" style="font-size:10px;transition:transform .2s;transform:rotate(-90deg);">▼</span>
             </div>
             <div id="tzcBody" style="margin-top:6px;display:none;">
               <div class="fg2" style="margin-bottom:8px;">
                 <div>
-                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">TREND <button onclick="openDropEdit('oTrend','TREND')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Trend <button onclick="openDropEdit('oTrend','Trend')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
                   <select class="form-input" id="oTrend"><option value="">Select</option><option>Bullish</option><option>Bearish</option><option>Sideways</option></select>
                 </div>
                 <div>
-                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">ZONE <button onclick="openDropEdit('oZone','ZONE')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+                  <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Zone <button onclick="openDropEdit('oZone','Zone')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
                   <select class="form-input" id="oZone"><option value="">Select</option><option>Demand</option><option>Supply</option><option>FVG</option><option>iFVG</option><option>IDM</option><option>OB</option><option>POI</option></select>
                 </div>
               </div>
               <div style="margin-bottom:8px;">
-                <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">CONFIRM <button onclick="openDropEdit('oConfirm','CONFIRM')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
+                <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Confirm <button onclick="openDropEdit('oConfirm','Confirm')" style="font-size:9px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;">✎ Edit</button></div>
                 <select class="form-input" id="oConfirm"><option value="">Select</option><option>M1</option><option>M5</option><option>M15</option><option>M30</option><option>H1</option><option>H4</option><option>SMC</option><option>Price Action</option><option>FIBO</option></select>
               </div>
             </div>
@@ -2013,7 +2013,7 @@ function updateResult(){
 }
 function calcTimeInPos(){
   var ed=document.getElementById('oEntryDate').value,cd=document.getElementById('oCloseDate').value;
-  if(ed&&cd){var ms=new Date(cd)-new Date(ed);if(ms>0){var h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);document.getElementById('oTimePos').value=(h>0?h+'h ':'')+m+'m';}}
+  if(ed&&cd){var ms=new Date(cd)-new Date(ed);if(ms>0){var totalMins=Math.floor(ms/60000);var d=Math.floor(totalMins/1440);var h=Math.floor((totalMins%1440)/60);var m=totalMins%60;var result='';if(d>0)result+=d+'d ';if(h>0||d>0)result+=h+'h ';result+=m+'m';document.getElementById('oTimePos').value=result.trim();}else{document.getElementById('oTimePos').value='';}}
 }
 function calcAll(){
   var asset=document.getElementById('oAsset').value;
@@ -2995,16 +2995,19 @@ function addStrategy(){
 }
 function removeStrat(btn){btn.parentElement.remove();}
 
-// DROPDOWN OPTION EDITOR (TREND/ZONE/CONFIRM)
+// DROPDOWN OPTION EDITOR with drag-to-reorder
+var _deCurrentSelectId = '';
 function openDropEdit(selectId, label){
   var sel=document.getElementById(selectId);if(!sel)return;
+  _deCurrentSelectId = selectId;
   var existing=document.getElementById('dropEditModal');if(existing)existing.remove();
   var opts=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
   var modal=document.createElement('div');
   modal.id='dropEditModal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:600;display:flex;align-items:center;justify-content:center;';
   modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;min-width:280px;max-width:360px;position:relative;">'
-    +'<div style="font-size:13px;font-weight:600;margin-bottom:10px;">✎ Edit '+label+' Options</div>'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:4px;">✎ Edit '+label+' Options</div>'
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:10px;">⠿ ลากเพื่อเรียงลำดับใหม่</div>'
     +'<div id="deList" style="margin-bottom:10px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;"></div>'
     +'<div style="display:flex;gap:6px;">'
     +'<input id="deInput" class="settings-input" placeholder="New option... (Enter = Add)" style="flex:1;margin-top:0;">'
@@ -3038,12 +3041,49 @@ function deResetOpts(selectId){
 }
 function deRenderList(selectId, opts){
   var list=document.getElementById('deList');if(!list)return;
-  list.innerHTML=opts.map(function(o,i){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;">'
-      +'<span style="color:var(--text-primary);">'+o+'</span>'
-      +'<button onclick="deRemoveOpt(\''+selectId+'\',\''+o.replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text-muted)\'">×</button>'
-      +'</div>';
-  }).join('');
+  list.innerHTML='';
+  opts.forEach(function(o){
+    var row=document.createElement('div');
+    row.draggable=true;
+    row.dataset.val=o;
+    row.style.cssText='display:flex;align-items:center;gap:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;cursor:grab;user-select:none;transition:opacity .15s;';
+    row.innerHTML='<span style="color:var(--text-muted);font-size:13px;line-height:1;cursor:grab;">⠿</span>'
+      +'<span style="color:var(--text-primary);flex:1;">'+o+'</span>'
+      +'<button onclick="deRemoveOpt(\''+selectId+'\',\''+o.replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text-muted)\'">×</button>';
+    // Drag events
+    row.addEventListener('dragstart',function(e){
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',o);
+      row.style.opacity='0.4';
+      list._dragging=row;
+    });
+    row.addEventListener('dragend',function(){
+      row.style.opacity='1';
+      list._dragging=null;
+      list.querySelectorAll('[data-drag-over]').forEach(function(el){el.removeAttribute('data-drag-over');el.style.borderTop='';});
+      // Save new order to select + localStorage
+      var newOpts=Array.from(list.children).map(function(r){return r.dataset.val;});
+      var sel=document.getElementById(selectId);if(!sel)return;
+      Array.from(sel.options).forEach(function(op){if(op.value!=='')op.remove();});
+      newOpts.forEach(function(v){var op=document.createElement('option');op.value=v;op.textContent=v;sel.appendChild(op);});
+      saveDropOptions(selectId);
+    });
+    row.addEventListener('dragover',function(e){
+      e.preventDefault();e.dataTransfer.dropEffect='move';
+      if(list._dragging&&list._dragging!==row){
+        list.querySelectorAll('[data-drag-over]').forEach(function(el){el.removeAttribute('data-drag-over');el.style.borderTop='';});
+        row.setAttribute('data-drag-over','1');
+        row.style.borderTop='2px solid var(--accent)';
+      }
+    });
+    row.addEventListener('drop',function(e){
+      e.preventDefault();
+      if(list._dragging&&list._dragging!==row){
+        list.insertBefore(list._dragging,row);
+      }
+    });
+    list.appendChild(row);
+  });
 }
 function deAddOpt(selectId){
   var inp=document.getElementById('deInput');if(!inp)return;
