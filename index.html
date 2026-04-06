@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TradeLog Pro</title>
-<link rel="icon" type="image/png" href="Icon.png">
-<link rel="apple-touch-icon" href="Icon.png">
+<link rel="shortcut icon" type="image/png" href="Icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="Icon.png">
+<link rel="icon" type="image/png" sizes="16x16" href="Icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="Icon.png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg-primary:#0d0f14;--bg-secondary:#141720;--bg-card:#1a1e2a;--bg-input:#0f1117;--border:#2a2f3d;--border-hover:#3d4460;--text-primary:#e8eaf0;--text-secondary:#8b90a0;--text-muted:#555b70;--accent:#4f7aff;--accent-hover:#6b91ff;--accent-dim:rgba(79,122,255,.15);--green:#2ecc8a;--green-dim:rgba(46,204,138,.12);--red:#ff4d6a;--red-dim:rgba(255,77,106,.12);--amber:#f5a623;--amber-dim:rgba(245,166,35,.12);--purple:#a855f7;--teal:#22d3ee;--font-main:'Sora',sans-serif;--font-mono:'JetBrains Mono',monospace;--radius:10px;--radius-sm:6px;}
@@ -392,7 +394,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
 <body data-theme="dark">
 
 <div class="topbar">
-  <div class="logo"><img src="Icon.png" style="width:22px;height:22px;border-radius:5px;object-fit:cover;">TradeLog Pro</div>
+  <div class="logo"><img src="Icon.png" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">TradeLog Pro</div>
   <div class="topbar-center">
     <button class="view-btn active" id="btnDaily" onclick="switchView('daily')">📅 Daily View</button>
     <button class="view-btn" id="btnWeekly" onclick="switchView('weekly')">📊 Weekly View</button>
