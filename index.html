@@ -254,7 +254,7 @@ body.modal-open #sidebarBtnRight {
 .field-label{font-size:10px;color:var(--text-muted);margin-bottom:3px;font-weight:500;letter-spacing:.3px;}
 .field-select,.field-input,.field-textarea{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);padding:5px 8px;font-size:11px;font-family:var(--font-main);transition:border-color .15s;}
 .field-select:focus,.field-input:focus,.field-textarea:focus{outline:none;border-color:var(--accent);}
-.field-textarea{min-height:65px;resize:vertical;}
+.field-textarea{min-height:65px;max-height:160px;resize:vertical;word-break:break-word;overflow-wrap:break-word;white-space:pre-wrap;overflow-y:auto;}
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:9px;}
 .tag-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;}
 .tag{background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);padding:2px 7px;border-radius:20px;font-size:10px;cursor:pointer;transition:all .15s;}
@@ -411,12 +411,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
           <div class="drop-item" onclick="loadFromFile();closeMenu()">📂 Load from file</div>
           <div class="drop-item" onclick="exportCSV();closeMenu()">📊 Export CSV</div>
           <div class="drop-item" onclick="importCSV();closeMenu()">📥 Import CSV (Exness / MT5)</div>
+          <div class="drop-item" onclick="openTopstepImport();closeMenu()">📥 Import from Topstep</div>
           <div style="height:1px;background:var(--border);margin:3px 0;"></div>
           <div class="drop-cat">AI COACH</div>
           <div class="drop-item" onclick="openAI();closeMenu()">🤖 Open AI Coach</div>
           <div class="drop-item" onclick="openAPI();closeMenu()">🔑 Change AI Key</div>
           <div style="height:1px;background:var(--border);margin:3px 0;"></div>
           <div class="drop-cat">ทั่วไป</div>
+          <div class="drop-item" onclick="openShareDashboard();closeMenu()">🔗 Share Dashboard</div>
           <div class="drop-item" onclick="openSheet();closeMenu()">🔗 Google Sheet URL</div>
           <div class="drop-item" onclick="showToast('กำลังพัฒนา...','success');closeMenu()">❓ Help & Tutorials</div>
         </div>
@@ -621,7 +623,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
     <span class="strat-wrap"><span class="tag" onclick="this.classList.toggle('active')">SMC</span><button class="tag-del" onclick="removeStrat(this)" style="display:none;">×</button></span>
   </div>
   <div class="field-group" style="margin-top:8px;">
-    <div class="field-label">Notes / Reflection</div>
+    <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">Notes / Reflection <button onclick="clearSidebarNotes()" title="ลบโน้ต" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:0 2px;border-radius:3px;transition:color .15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-muted)'">✕</button></div>
     <div style="position:relative;">
       <textarea class="field-textarea" id="rNotes" style="padding-right:34px;" placeholder="Write your trading thoughts and reflections here..."></textarea>
       <button onclick="toggleEmojiPanel('notesEmojiPanel',event)" title="เลือก Emoji" style="position:absolute;right:6px;top:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">😊</button>
@@ -663,6 +665,19 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
           <div class="emoji-search-row"><input class="emoji-search-input" id="commentEmojiSearch" placeholder="🔍 ค้นหา emoji..." oninput="commentEmojiSearch(this.value)"></div>
           <div class="emoji-scroll" id="commentEmojiScroll" style="max-height:160px;"></div>
         </div>
+      </div>
+      <!-- NOTE HISTORY — single-line rows like trade table -->
+      <div id="commentHistoryWrap" style="display:none;margin-top:10px;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;" id="commentHistoryTable">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:4px 6px;font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;">เวลา</th>
+              <th style="text-align:left;padding:4px 6px;font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.4px;text-transform:uppercase;">รายละเอียด</th>
+              <th style="width:52px;"></th>
+            </tr>
+          </thead>
+          <tbody id="commentHistoryList"></tbody>
+        </table>
       </div>
     </div>
     <div id="tOrder" style="display:none;">
@@ -882,7 +897,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
   </div>
   <div class="modal-footer">
     <button class="btn-sm" style="color:var(--red);border-color:rgba(255,77,106,.4);" onclick="deleteDay()">Delete entry</button>
-    <div style="display:flex;gap:7px;"><button class="btn-sm" onclick="closeM('mDay')">Cancel</button><button class="btn-primary" onclick="saveDayM()">Save Comment</button></div>
+    <div style="display:flex;gap:7px;">
+      <button class="btn-sm" onclick="closeM('mDay')">ปิด</button>
+      <button class="btn-primary" onclick="saveDayM()">💾 Save Comment</button>
+    </div>
   </div>
 </div>
 </div>
@@ -1504,6 +1522,7 @@ function init(){
   renderCal();
   setTimeout(function(){ _sidebarRefresh(); },50);
   setTimeout(function(){setEmoByIdx(0);},0);
+  setTimeout(function(){checkSharedUrl();},100);
   document.addEventListener('click',function(e){
     var d=document.getElementById('dropMenu'),b=document.getElementById('menuBtn');
     if(d&&!d.contains(e.target)&&e.target!==b)d.style.display='none';
@@ -2073,7 +2092,27 @@ function saveEntry(){
   var tr=S.trades[k]||[];
   var pnl=tr.reduce(function(s,t){return s+(parseFloat(t.pnl)||0);},0);
   var wins=tr.filter(function(t){return parseFloat(t.pnl)>0;}).length;
-  var sessObj={emotion:S.emo,trend:document.getElementById('rTrend').value,confirm:document.getElementById('rConfirm').value,sessions:sess.join(', '),strategies:strats.join(', '),notes:document.getElementById('rNotes').value,netPnl:pnl,trades:tr.length,wins:wins};
+  var newNote=document.getElementById('rNotes').value.trim();
+  // Load existing session to preserve notesHistory
+  var existing=S.sessions[k]||{};
+  if(!existing.notesHistory) existing.notesHistory=[];
+  // Push to history only if note is non-empty and changed from last entry
+  if(newNote){
+    var last=existing.notesHistory[existing.notesHistory.length-1];
+    if(!last||last.text!==newNote){
+      existing.notesHistory.push({
+        text:newNote,
+        ts:new Date().toISOString(),
+        emotion:S.emo,
+        trend:document.getElementById('rTrend').value,
+        confirm:document.getElementById('rConfirm').value,
+        sessions:sess.join(', '),
+        strategies:strats.join(', ')
+      });
+      if(existing.notesHistory.length>10) existing.notesHistory.shift();
+    }
+  }
+  var sessObj={emotion:S.emo,trend:document.getElementById('rTrend').value,confirm:document.getElementById('rConfirm').value,sessions:sess.join(', '),strategies:strats.join(', '),notes:newNote,netPnl:pnl,trades:tr.length,wins:wins,notesHistory:existing.notesHistory};
   S.sessions[k]=sessObj;
   persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();
   if(S.scriptUrl) sendSheet('saveSession',Object.assign({date:k},sessObj));
@@ -2130,6 +2169,8 @@ function openDay(dt){
   var warn=document.getElementById('riskWarnBar');if(warn)warn.style.display='none';
   document.getElementById('mDay').classList.add('open');
   document.body.classList.add('modal-open');
+  // Render note history for this day
+  renderCommentHistory(S.mKey);
 }
 function openDayByKey(k){var p=k.split('-');openDay(new Date(p[0],p[1]-1,p[2]));}
 function closeM(id){
@@ -2590,14 +2631,89 @@ function updateTrade(){
 }
 function saveDayM(){
   S.trades[S.mKey]=S.mTrades;var se=S.sessions[S.mKey]||{};
-  se.notes=document.getElementById('dComment').value;
+  var newNote=document.getElementById('dComment').value.trim();
+  // Save history of notes (keep up to 10 entries per day)
+  if(newNote){
+    if(!se.notesHistory) se.notesHistory=[];
+    var last=se.notesHistory[se.notesHistory.length-1];
+    if(!last||last.text!==newNote){
+      se.notesHistory.push({text:newNote,ts:new Date().toISOString()});
+      if(se.notesHistory.length>10) se.notesHistory.shift();
+    }
+  }
+  se.notes=newNote;
   se.emotion=EMO_LIST[_mEmoIdx]||se.emotion||'';
   var pnl=S.mTrades.reduce(function(s,t){return s+(parseFloat(t.pnl)||0);},0);
   var wins=S.mTrades.filter(function(t){return parseFloat(t.pnl)>0;}).length;
   se.netPnl=pnl;se.trades=S.mTrades.length;se.wins=wins;S.sessions[S.mKey]=se;
-  persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();closeM('mDay');
+  persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();
+  // Render history in-place WITHOUT closing modal — user can see it immediately
+  renderCommentHistory(S.mKey);
   if(S.scriptUrl) sendSheet('saveSession',Object.assign({date:S.mKey},se));
   showToast('✅ บันทึกแล้ว','success');
+}
+function renderCommentHistory(dateKey){
+  var wrap=document.getElementById('commentHistoryWrap');
+  var list=document.getElementById('commentHistoryList');
+  if(!wrap||!list) return;
+  var se=S.sessions[dateKey]||{};
+  var hist=se.notesHistory||[];
+  if(!hist.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  var MABBR2=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  // replace table with rows — keep using tbody for layout
+  list.innerHTML=hist.slice().reverse().map(function(h,revIdx){
+    var idx=hist.length-1-revIdx;
+    var dt=h.ts?new Date(h.ts):null;
+    var timeStr=dt?(dt.getDate()+' '+MABBR2[dt.getMonth()]+' '+pad(dt.getHours())+':'+pad(dt.getMinutes())):'';
+    var preview=h.text.replace(/\n/g,' ');
+    var short=preview.length>70?preview.substring(0,70)+'…':preview;
+    // Build tag pills for sessions & strategies
+    function pills(str,col){
+      if(!str) return '';
+      return str.split(',').map(function(s){s=s.trim();return s?'<span style="background:'+col+'22;border:1px solid '+col+'55;color:'+col+';border-radius:10px;padding:1px 6px;font-size:9px;white-space:nowrap;">'+escHtml(s)+'</span>':'';}).join('');
+    }
+    var sessPills=pills(h.sessions,'var(--accent)');
+    var stratPills=pills(h.strategies,'var(--purple)');
+    var emoStr=h.emotion?'<span style="font-size:13px;" title="Emotional">'+h.emotion+'</span>':'';
+    var trendStr=h.trend?'<span style="font-size:9px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--amber);">'+escHtml(h.trend)+'</span>':'';
+    var confStr=h.confirm?'<span style="font-size:9px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--teal);">'+escHtml(h.confirm)+'</span>':'';
+    return '<tr style="border-bottom:1px solid var(--border);vertical-align:top;transition:background .1s;" onmouseover="this.style.background=\'var(--bg-card)\'" onmouseout="this.style.background=\'\'">'
+      // time col
+      +'<td style="padding:6px 6px;white-space:nowrap;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);vertical-align:top;">'+timeStr+'</td>'
+      // main content col
+      +'<td style="padding:6px 6px;vertical-align:top;min-width:0;">'
+        // row 1: emo + trend + confirm + sessions + strategies
+        +'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:3px;">'
+          +emoStr+trendStr+confStr+sessPills+stratPills
+        +'</div>'
+        // row 2: note text
+        +'<div style="font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px;" title="'+escHtml(h.text)+'">'+escHtml(short)+'</div>'
+      +'</td>'
+      // action col
+      +'<td style="padding:6px 6px;white-space:nowrap;text-align:right;vertical-align:top;">'
+        +'<button onclick="editNoteHistory(\''+dateKey+'\','+idx+')" title="แก้ไข" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:22px;height:22px;border-radius:4px;font-size:11px;cursor:pointer;margin-right:3px;transition:all .12s;" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.color=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--text-muted)\'">✎</button>'
+        +'<button onclick="deleteNoteHistory(\''+dateKey+'\','+idx+')" title="ลบ" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:22px;height:22px;border-radius:4px;font-size:11px;cursor:pointer;transition:all .12s;" onmouseover="this.style.borderColor=\'var(--red)\';this.style.color=\'var(--red)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--text-muted)\'">✕</button>'
+      +'</td>'
+      +'</tr>';
+  }).join('');
+}
+function editNoteHistory(dateKey,idx){
+  var se=S.sessions[dateKey]||{};
+  var hist=se.notesHistory||[];
+  if(!hist[idx]) return;
+  document.getElementById('dComment').value=hist[idx].text;
+  document.getElementById('dComment').focus();
+  showToast('✎ โหลดโน้ตแล้ว แก้ไขและกด Save Comment','success');
+}
+function deleteNoteHistory(dateKey,idx){
+  var se=S.sessions[dateKey]||{};
+  if(!se.notesHistory) return;
+  se.notesHistory.splice(idx,1);
+  S.sessions[dateKey]=se;
+  persistPort();
+  renderCommentHistory(dateKey);
+  showToast('🗑 ลบโน้ตแล้ว','success');
 }
 function deleteDay(){if(!confirm('ลบข้อมูลวันนี้?')) return;delete S.sessions[S.mKey];delete S.trades[S.mKey];persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();closeM('mDay');if(S.scriptUrl) sendSheet('deleteDay',{date:S.mKey,portfolio:S.currentPortfolio});showToast('🗑 ลบแล้ว','success');}
 
@@ -3496,6 +3612,252 @@ function renderTodayOrders(){
       +'</div>'
       +'</div>';
   }).join('');
+}
+
+function clearSidebarNotes(){
+  var el=document.getElementById('rNotes');
+  if(!el||!el.value) return;
+  if(!confirm('ลบโน้ตของวันนี้ใช่ไหม?')) return;
+  el.value='';
+  showToast('🗑 ลบโน้ตแล้ว','success');
+}
+
+// ─── SHARE DASHBOARD ───
+function openShareDashboard(){
+  var existing=document.getElementById('shareDashModal');if(existing)existing.remove();
+  // Encode current portfolio data as compact base64
+  var payload={sessions:S.sessions,trades:S.trades,portfolios:S.portfolios,portfolio:S.currentPortfolio};
+  var encoded='';
+  try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));}catch(e){encoded='';}
+  // Short hash for display
+  var shortId=encoded.substring(0,8)+'...';
+  // Create share URL with data embedded as hash
+  var baseUrl=window.location.origin+window.location.pathname;
+  var shareUrl=baseUrl+'#share='+encoded;
+  var modal=document.createElement('div');
+  modal.id='shareDashModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:20px;min-width:340px;max-width:480px;position:relative;">'
+    +'<button onclick="document.getElementById(\'shareDashModal\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;line-height:1;" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text-muted)\'">✕</button>'
+    +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">🔗 Share Dashboard</div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">สร้างลิ้งค์แชร์ข้อมูลเทรดของคุณ — ผู้รับสามารถดูข้อมูลแบบ Read-only ได้ (ไม่สามารถแก้ไขได้)</div>'
+    +'<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">'
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">📊 ข้อมูลที่จะแชร์ (พอร์ต: <strong style="color:var(--accent);">'+escHtml(S.portfolios[S.currentPortfolio]&&S.portfolios[S.currentPortfolio].name||'Default')+'</strong>)</div>'
+    +'<div style="font-size:11px;display:flex;gap:12px;">'
+    +'<span>📈 Trades: <strong>'+Object.values(S.trades).reduce(function(s,a){return s+a.length;},0)+'</strong></span>'
+    +'<span>📅 Days: <strong>'+Object.keys(S.sessions).length+'</strong></span>'
+    +'</div></div>'
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">ลิ้งค์ (คลิกเพื่อคัดลอก)</div>'
+    +'<div id="shareUrlBox" onclick="copyShareUrl()" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:10px;font-family:var(--font-mono);color:var(--accent);cursor:pointer;word-break:break-all;max-height:60px;overflow-y:auto;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+baseUrl+'#share='+shortId+'</div>'
+    +'<div style="margin-top:10px;display:flex;gap:7px;">'
+    +'<button class="btn-primary" onclick="copyShareUrl()" style="flex:1;">📋 คัดลอกลิ้งค์</button>'
+    +'<button class="btn-sm" onclick="document.getElementById(\'shareDashModal\').remove()">ปิด</button>'
+    +'</div>'
+    +'<div style="margin-top:8px;font-size:10px;color:var(--amber);">⚠️ ลิ้งค์มีข้อมูลทั้งหมด — แชร์เฉพาะกับคนที่ไว้ใจเท่านั้น</div>'
+    +'</div>';
+  // Store full share URL
+  modal._shareUrl=shareUrl;
+  document.body.appendChild(modal);
+  modal.addEventListener('mousedown',function(e){modal._md=(e.target===modal);});
+  modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._md)modal.remove();modal._md=false;});
+}
+function copyShareUrl(){
+  var modal=document.getElementById('shareDashModal');
+  if(!modal||!modal._shareUrl) return;
+  navigator.clipboard.writeText(modal._shareUrl).then(function(){showToast('📋 คัดลอกลิ้งค์แล้ว!','success');}).catch(function(){
+    // fallback
+    var ta=document.createElement('textarea');ta.value=modal._shareUrl;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('📋 คัดลอกแล้ว','success');
+  });
+}
+// Read shared data from URL on load
+function checkSharedUrl(){
+  var hash=window.location.hash;
+  if(!hash||!hash.startsWith('#share=')) return;
+  var encoded=hash.substring(7);
+  if(!encoded) return;
+  try{
+    var data=JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    // Show read-only view banner
+    var banner=document.createElement('div');
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;background:rgba(79,122,255,.15);border-bottom:1px solid var(--accent);padding:6px 14px;font-size:11px;color:var(--accent);z-index:999;display:flex;justify-content:space-between;align-items:center;';
+    banner.innerHTML='<span>👀 <strong>โหมดดูเท่านั้น</strong> — Dashboard ที่ถูกแชร์มา (Read-only)</span><button onclick="this.parentElement.remove();window.location.hash=\'\';" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;">✕ ออก</button>';
+    document.body.insertBefore(banner,document.body.firstChild);
+    // Load shared data
+    if(data.sessions) S.sessions=data.sessions;
+    if(data.trades) S.trades=data.trades;
+    if(data.portfolios) S.portfolios=data.portfolios;
+    if(data.portfolio) S.currentPortfolio=data.portfolio;
+    // Disable save buttons
+    setTimeout(function(){
+      var saveBtn=document.getElementById('saveEntry');if(saveBtn)saveBtn.style.display='none';
+      document.querySelectorAll('.btn-save').forEach(function(b){b.disabled=true;b.style.opacity='0.4';});
+    },200);
+    updateStats();renderCal();updateRecent();renderTodayOrders();renderPortfolioBar();
+    showToast('👀 กำลังดู Dashboard ที่แชร์','success');
+  }catch(e){console.error('Share URL parse error:',e);}
+}
+
+// ─── IMPORT FROM TOPSTEP CSV ───
+function openTopstepImport(){
+  var existing=document.getElementById('topstepImportModal');if(existing)existing.remove();
+  var modal=document.createElement('div');
+  modal.id='topstepImportModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:20px;min-width:360px;max-width:500px;position:relative;">'
+    +'<button onclick="document.getElementById(\'topstepImportModal\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text-muted)\'">✕</button>'
+    +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">📥 Import from Topstep</div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">อัพโหลดไฟล์ trades_export.csv จาก Topstep — ระบบจะสร้าง Entry ให้อัตโนมัติ</div>'
+    +'<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:10px;line-height:1.8;color:var(--text-secondary);">'
+    +'<div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">📋 Field Mapping</div>'
+    +'<div><span style="color:var(--text-muted);">ContractName</span> → Asset</div>'
+    +'<div><span style="color:var(--text-muted);">EnteredAt / ExitedAt</span> → Entry / Close Date&Time</div>'
+    +'<div><span style="color:var(--text-muted);">EntryPrice / ExitPrice</span> → Entry / Close Price</div>'
+    +'<div><span style="color:var(--text-muted);">PnL (+)</span> → TP &nbsp;|&nbsp; <span style="color:var(--text-muted);">PnL (-)</span> → SL</div>'
+    +'<div><span style="color:var(--text-muted);">Fees</span> → Commission &nbsp;|&nbsp; <span style="color:var(--text-muted);">PnL</span> → P&L($)</div>'
+    +'<div><span style="color:var(--text-muted);">Size</span> → Lots &nbsp;|&nbsp; <span style="color:var(--text-muted);">Type</span> → Side (Long/Short)</div>'
+    +'<div><span style="color:var(--text-muted);">TradeDuration</span> → Time in Position</div>'
+    +'</div>'
+    +'<div onclick="document.getElementById(\'topstepFileIn\').click()" id="topstepDropZone" style="border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:12px;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'" ondragover="event.preventDefault();this.style.borderColor=\'var(--accent)\'" ondragleave="this.style.borderColor=\'var(--border)\'" ondrop="handleTopstepDrop(event)">'
+    +'<div style="font-size:24px;margin-bottom:6px;">📂</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);">คลิกหรือลากไฟล์ trades_export.csv มาวางที่นี่</div>'
+    +'<div id="topstepFileInfo" style="margin-top:6px;font-size:11px;color:var(--accent);"></div>'
+    +'</div>'
+    +'<input type="file" id="topstepFileIn" accept=".csv" style="display:none;" onchange="readTopstepFile(this.files[0])">'
+    +'<div id="topstepPreview" style="display:none;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:11px;max-height:140px;overflow-y:auto;"></div>'
+    +'<div style="display:flex;gap:7px;">'
+    +'<button id="topstepImportBtn" class="btn-primary" onclick="confirmTopstepImport()" style="flex:1;display:none;">✅ Import ทั้งหมด</button>'
+    +'<button class="btn-sm" onclick="document.getElementById(\'topstepImportModal\').remove()">ปิด</button>'
+    +'</div></div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('mousedown',function(e){modal._md=(e.target===modal);});
+  modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._md)modal.remove();modal._md=false;});
+}
+var _topstepData=[];
+function handleTopstepDrop(e){
+  e.preventDefault();e.currentTarget.style.borderColor='var(--border)';
+  var f=e.dataTransfer.files[0];if(f)readTopstepFile(f);
+}
+function readTopstepFile(file){
+  if(!file){return;}
+  document.getElementById('topstepFileInfo').textContent='📄 '+file.name;
+  var r=new FileReader();
+  r.onload=function(ev){
+    parseTopstepCSV(ev.target.result);
+  };
+  r.readAsText(file);
+}
+function parseTopstepCSV(text){
+  // Remove BOM
+  text=text.replace(/^\uFEFF/,'');
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim();});
+  if(lines.length<2){showToast('❌ ไฟล์ CSV ว่างเปล่า','error');return;}
+  var headers=lines[0].split(',').map(function(h){return h.trim();});
+  function col(row,name){var i=headers.indexOf(name);return i>=0?(row[i]||'').trim():'';}
+  _topstepData=[];
+  var skipped=0;
+  for(var i=1;i<lines.length;i++){
+    var parts=lines[i].split(',');
+    var contractName=col(parts,'ContractName');
+    if(!contractName){skipped++;continue;}
+    // Parse dates — format: "04/06/2026 08:51:17 +07:00"
+    function parseTopstepDate(ds){
+      if(!ds) return '';
+      // MM/DD/YYYY HH:MM:SS ±HH:MM
+      var m=ds.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}:\d{2})/);
+      if(m) return m[3]+'-'+m[1]+'-'+m[2]+'T'+m[4]; // YYYY-MM-DDTHH:MM
+      return '';
+    }
+    var enteredAt=parseTopstepDate(col(parts,'EnteredAt'));
+    var exitedAt=parseTopstepDate(col(parts,'ExitedAt'));
+    // Date key for storage (YYYY-MM-DD from enteredAt)
+    var dateKey=enteredAt?enteredAt.substring(0,10):'';
+    var pnl=parseFloat(col(parts,'PnL'))||0;
+    var fees=parseFloat(col(parts,'Fees'))||0;
+    var exitPrice=col(parts,'ExitPrice');
+    var entryPrice=col(parts,'EntryPrice');
+    // Normalize contract name: remove suffix like M6 → MNQM6 → MNQ1
+    var asset=contractName.replace(/M\d+$/,'1');
+    var trade={
+      asset:asset,
+      side:col(parts,'Type')||'Long',
+      lots:col(parts,'Size')||'1',
+      entry:entryPrice?parseFloat(entryPrice).toFixed(2):'',
+      close:exitPrice?parseFloat(exitPrice).toFixed(2):'',
+      tp: pnl>=0 ? (exitPrice?parseFloat(exitPrice).toFixed(2):'') : '',
+      sl: pnl<0  ? (exitPrice?parseFloat(exitPrice).toFixed(2):'') : '',
+      pnl:pnl.toFixed(2),
+      commission:fees.toFixed(2),
+      result:pnl>0?'Win':pnl<0?'Loss':'BE',
+      entryDate:enteredAt,
+      closeDate:exitedAt,
+      timeInPos:formatTopstepDuration(col(parts,'TradeDuration')),
+      note:'',imgLink:'',maxRR:'',setupClass:'',candle:'',code:'',mode:'',tf:'',trend:'',zone:'',confirm:'',sessions:'',emotion:5,discipline:5,
+      id:Date.now()+i,
+      _dateKey:dateKey
+    };
+    _topstepData.push(trade);
+  }
+  // Show preview
+  var prev=document.getElementById('topstepPreview');
+  var btn=document.getElementById('topstepImportBtn');
+  if(!_topstepData.length){prev.style.display='block';prev.innerHTML='<span style="color:var(--red);">❌ ไม่พบข้อมูลที่ valid</span>';btn.style.display='none';return;}
+  // Group by date
+  var byDate={};
+  _topstepData.forEach(function(t){if(!byDate[t._dateKey])byDate[t._dateKey]=[];byDate[t._dateKey].push(t);});
+  var rows=Object.keys(byDate).sort().map(function(d){
+    var trades=byDate[d];
+    var totalPnl=trades.reduce(function(s,t){return s+parseFloat(t.pnl);},0);
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);">'
+      +'<span style="font-family:var(--font-mono);color:var(--text-secondary);">'+d+'</span>'
+      +'<span>'+trades.length+' trades</span>'
+      +'<span style="font-family:var(--font-mono);font-weight:600;color:'+(totalPnl>=0?'var(--green)':'var(--red)')+';">'+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2)+'</span>'
+      +'</div>';
+  }).join('');
+  prev.style.display='block';
+  prev.innerHTML='<div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;">พบ <strong style="color:var(--accent);">'+_topstepData.length+'</strong> trades ใน <strong style="color:var(--accent);">'+Object.keys(byDate).length+'</strong> วัน'+( skipped?' (<span style="color:var(--amber);">'+skipped+' rows skipped</span>)':'' )+'</div>'+rows;
+  btn.style.display='block';
+}
+function formatTopstepDuration(dur){
+  // Format: "00:02:00.5907020" → "2m" or "00:05:57.8439460" → "5m 57s"
+  if(!dur) return '';
+  var m=dur.match(/(\d+):(\d+):(\d+)/);
+  if(!m) return dur;
+  var h=parseInt(m[1]),min=parseInt(m[2]),sec=parseInt(m[3]);
+  var result='';
+  if(h>0) result+=h+'h ';
+  if(min>0||h>0) result+=min+'m ';
+  if(sec>0) result+=sec+'s';
+  return result.trim();
+}
+function confirmTopstepImport(){
+  if(!_topstepData.length){showToast('ไม่มีข้อมูลให้ import','error');return;}
+  var count=0;
+  _topstepData.forEach(function(t){
+    var dateKey=t._dateKey;
+    if(!dateKey) return;
+    if(!S.trades[dateKey]) S.trades[dateKey]=[];
+    // Assign new unique id
+    t.id=Date.now()+Math.random();
+    var tradeObj=Object.assign({},t);
+    delete tradeObj._dateKey;
+    S.trades[dateKey].push(tradeObj);
+    // Update session PnL
+    if(!S.sessions[dateKey]) S.sessions[dateKey]={};
+    var trades=S.trades[dateKey];
+    var pnl=trades.reduce(function(s,tr){return s+(parseFloat(tr.pnl)||0);},0);
+    var wins=trades.filter(function(tr){return parseFloat(tr.pnl)>0;}).length;
+    S.sessions[dateKey].netPnl=pnl;
+    S.sessions[dateKey].trades=trades.length;
+    S.sessions[dateKey].wins=wins;
+    // Sync to sheet if connected
+    if(S.scriptUrl) sendSheet('saveTrade',Object.assign({date:dateKey,portfolio:S.currentPortfolio},tradeObj));
+    count++;
+  });
+  persistPort();
+  updateStats();renderCal();updateRecent();renderTodayOrders();
+  document.getElementById('topstepImportModal').remove();
+  showToast('✅ Import '+count+' trades จาก Topstep แล้ว','success');
+  _topstepData=[];
 }
 
 init();
