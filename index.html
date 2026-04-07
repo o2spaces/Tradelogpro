@@ -2278,7 +2278,9 @@ function calcPnl(){
     if(!refPrice&&tp&&S_result==='Win') refPrice=tp;
     if(!refPrice&&sl&&S_result==='Loss') refPrice=sl;
     if(refPrice){
-      var pnl=(refPrice-en)*lots*pv*dir;
+      var grossPnl=(refPrice-en)*lots*pv*dir;
+      var comm=parseFloat(document.getElementById('oComm').value)||0;
+      var pnl=grossPnl-comm;
       document.getElementById('oPnl').value=pnl.toFixed(2);
       if(cl) updateResult();
     }
