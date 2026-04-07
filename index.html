@@ -2084,7 +2084,7 @@ function _loadSidebarDay(k){
   renderTodayOrders();
 }
 
-function saveEntry(){
+function saveEntry(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var k = _sidebarDateKey();
   var sess=[],strats=[];
   document.querySelectorAll('.sidebar-right .tag.active').forEach(function(t){sess.push(t.textContent.replace(/\s*\d{2}:\d{2}-\d{2}:\d{2}/,'').trim());});
@@ -2189,13 +2189,14 @@ function mTabById(id){['tComment','tOrder','tAnalysis'].forEach(function(t){docu
 var POINT_VAL={MNQ1:2,NQ1:20,MGC1:10,GC1:100,'XAU/USD':1,EURUSD:1,GBPUSD:1,USDJPY:0.01,BTCUSD:1};
 var S_result='BE';
 var _riskWarnDismissed=false;
+var _isReadOnly=false;
 function dismissRiskWarn(){
   _riskWarnDismissed=true;
   var warn=document.getElementById('riskWarnBar');if(warn)warn.style.display='none';
   var riskInp=document.getElementById('oRisk');if(riskInp){riskInp.style.borderColor='';riskInp.style.color='';}
   var riskDot=document.getElementById('oRiskWarnDot');if(riskDot)riskDot.style.display='none';
 }
-function toggleOF(){
+function toggleOF(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var f=document.getElementById('orderForm');
   var show=f.style.display==='none';
   f.style.display=show?'block':'none';
@@ -2354,7 +2355,7 @@ function previewImgLink(v){
   if(v&&v.startsWith('http')){p.style.display='block';a.href=v;}
   else{p.style.display='none';}
 }
-function addTrade(){
+function addTrade(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var asset=document.getElementById('oAsset').value;if(!asset){showToast('กรุณาเลือก Asset','error');return;}
   var orderSessions=[];
   document.querySelectorAll('#oSessionTagRow .tag.active').forEach(function(t){orderSessions.push(t.dataset.sess||t.textContent.trim());});
@@ -2471,7 +2472,7 @@ function renderTT(){
     return '<tr><td style="font-family:var(--font-mono);font-weight:500">'+t.asset+'</td><td><span class="side-badge '+t.side.toLowerCase()+'">'+t.side+'</span></td><td>'+t.lots+'</td><td style="font-family:var(--font-mono)">'+t.entry+'</td><td style="font-family:var(--font-mono)">'+(t.close||'-')+'</td><td class="'+(p>=0?'pnl-pos':'pnl-neg')+'">'+(p>=0?'+':'')+'$'+Math.abs(p).toFixed(2)+'</td><td>'+resBadge+'</td><td style="font-size:10px;color:var(--text-muted)">'+(t.timeInPos||'-')+'</td><td style="font-size:10px;color:var(--text-secondary)">'+t.note+'</td><td>'+imgCell+'</td><td style="white-space:nowrap;"><button class="btn-del" onclick="editTr('+i+')" title="แก้ไข" style="color:var(--accent);margin-right:2px;">✎</button><button class="btn-del" onclick="moveTrDate('+i+')" title="ย้ายไปวันอื่น" style="color:var(--amber);margin-right:2px;">📅</button><button class="btn-del" onclick="delTr('+i+')">✕</button></td></tr>';
   }).join('');
 }
-function delTr(i){
+function delTr(i){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var t=S.mTrades[i];
   if(!t) return;
   var label=(t.asset||'')+(t.entry?' @ '+t.entry:'');
@@ -2485,7 +2486,7 @@ function delTr(i){
     showToast('🗑 ลบออเดอร์แล้ว','success');
   });
 }
-function moveTrDate(i){
+function moveTrDate(i){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var t=S.mTrades[i];
   var existing=document.getElementById('moveDateModal');if(existing)existing.remove();
   var modal=document.createElement('div');
@@ -2556,7 +2557,7 @@ function confirmMoveDate(i){
   document.getElementById('moveDateModal').remove();
   showToast('✅ ย้ายออเดอร์ไป '+newDate+' แล้ว','success');
 }
-function editTr(i){
+function editTr(i){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var t=S.mTrades[i];
   S._editIdx=i;
   _riskWarnDismissed=false;
@@ -2600,7 +2601,7 @@ function editTr(i){
   document.querySelector('#orderForm .btn-primary').textContent='✓ Update Trade';
   document.querySelector('#orderForm .btn-primary').onclick=function(){updateTrade();};
 }
-function updateTrade(){
+function updateTrade(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var i=S._editIdx;if(i===undefined||i<0)return;
   var asset=document.getElementById('oAsset').value;if(!asset){showToast('กรุณาเลือก Asset','error');return;}
   var orderSessions=[];
@@ -2647,7 +2648,7 @@ function updateTrade(){
   if(S.scriptUrl) sendSheet('saveTrade',Object.assign({date:S.mKey},trade));
   showToast('✅ อัปเดตออเดอร์แล้ว','success');
 }
-function saveDayM(){
+function saveDayM(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   S.trades[S.mKey]=S.mTrades;var se=S.sessions[S.mKey]||{};
   var newNote=document.getElementById('dComment').value.trim();
   // Save history of notes (keep up to 10 entries per day)
@@ -2733,7 +2734,7 @@ function deleteNoteHistory(dateKey,idx){
   renderCommentHistory(dateKey);
   showToast('🗑 ลบโน้ตแล้ว','success');
 }
-function deleteDay(){
+function deleteDay(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   showConfirm('ลบข้อมูลวันนี้ทั้งหมดใช่ไหม?', function(){
     delete S.sessions[S.mKey];delete S.trades[S.mKey];
     persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();closeM('mDay');
@@ -3689,9 +3690,17 @@ function openShareDashboard(){
 function copyShareUrl(){
   var modal=document.getElementById('shareDashModal');
   if(!modal||!modal._shareUrl) return;
-  navigator.clipboard.writeText(modal._shareUrl).then(function(){showToast('📋 คัดลอกลิ้งค์แล้ว!','success');}).catch(function(){
-    // fallback
-    var ta=document.createElement('textarea');ta.value=modal._shareUrl;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('📋 คัดลอกแล้ว','success');
+  function onCopied(){
+    showToast('📋 คัดลอกลิ้งค์แล้ว!','success');
+    // Change button text temporarily
+    var btn=modal.querySelector('.btn-primary');
+    if(btn){var orig=btn.innerHTML;btn.innerHTML='✅ คัดลอกแล้ว!';btn.style.background='var(--green)';setTimeout(function(){btn.innerHTML=orig;btn.style.background='';},2000);}
+    // Highlight URL box
+    var box=document.getElementById('shareUrlBox');
+    if(box){box.style.borderColor='var(--green)';box.style.color='var(--green)';setTimeout(function(){box.style.borderColor='';box.style.color='var(--accent)';},2000);}
+  }
+  navigator.clipboard.writeText(modal._shareUrl).then(onCopied).catch(function(){
+    var ta=document.createElement('textarea');ta.value=modal._shareUrl;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();onCopied();
   });
 }
 // Read shared data from URL on load
@@ -3702,6 +3711,7 @@ function checkSharedUrl(){
   if(!encoded) return;
   try{
     var data=JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    _isReadOnly=true;
     // Show read-only view banner
     var banner=document.createElement('div');
     banner.style.cssText='position:fixed;top:0;left:0;right:0;background:rgba(79,122,255,.15);border-bottom:1px solid var(--accent);padding:6px 14px;font-size:11px;color:var(--accent);z-index:999;display:flex;justify-content:space-between;align-items:center;';
@@ -3712,18 +3722,20 @@ function checkSharedUrl(){
     if(data.trades) S.trades=data.trades;
     if(data.portfolios) S.portfolios=data.portfolios;
     if(data.portfolio) S.currentPortfolio=data.portfolio;
-    // Disable save buttons
+    // Disable all edit UI
     setTimeout(function(){
+      // hide topbar save button
       var saveBtn=document.getElementById('saveEntry');if(saveBtn)saveBtn.style.display='none';
-      document.querySelectorAll('.btn-save').forEach(function(b){b.disabled=true;b.style.opacity='0.4';});
-    },200);
+      // hide import / add-entry / portfolio-add buttons
+      document.querySelectorAll('.btn-save,.btn-primary').forEach(function(b){b.disabled=true;b.style.opacity='0.4';b.style.pointerEvents='none';});
+    },300);
     updateStats();renderCal();updateRecent();renderTodayOrders();renderPortfolioBar();
     showToast('👀 กำลังดู Dashboard ที่แชร์','success');
   }catch(e){console.error('Share URL parse error:',e);}
 }
 
 // ─── IMPORT FROM TOPSTEP CSV ───
-function openTopstepImport(){
+function openTopstepImport(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var existing=document.getElementById('topstepImportModal');if(existing)existing.remove();
   var modal=document.createElement('div');
   modal.id='topstepImportModal';
@@ -3875,7 +3887,7 @@ function formatTopstepDuration(dur){
   if(sec>0) result+=sec+'s';
   return result.trim();
 }
-function confirmTopstepImport(){
+function confirmTopstepImport(){if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   if(!_topstepData.length){showToast('ไม่มีข้อมูลให้ import','error');return;}
   var count=0;
   _topstepData.forEach(function(t){
