@@ -3853,26 +3853,38 @@ function checkSharedUrl(){
         ta.style.cursor='not-allowed';
       });
       // ── READ-ONLY: ซ่อน AI Coach และ AI Analysis ──
-      // ซ่อน nav-item AI Coach ใน sidebar ซ้าย
       document.querySelectorAll('.nav-item').forEach(function(item){
         if(item.textContent.indexOf('AI Coach')>=0) item.style.display='none';
       });
-      // ซ่อนปุ่ม AI Analysis ใน day modal และ sidebar
       document.querySelectorAll('[onclick*="openAI"],[onclick*="analyzeDay"]').forEach(function(el){
         el.style.display='none';
       });
-      // ซ่อน AI Coach ใน dropdown menu
-      var aiSection=document.querySelector('.drop-cat');
       document.querySelectorAll('.drop-cat').forEach(function(cat){
         if(cat.textContent.indexOf('AI')>=0){
-          // hide this category header and its following drop-items
-          var node=cat;
-          cat.style.display='none';
+          var node=cat;cat.style.display='none';
           while(node.nextElementSibling&&node.nextElementSibling.classList.contains('drop-item')){
-            node.nextElementSibling.style.display='none';
-            node=node.nextElementSibling;
+            node.nextElementSibling.style.display='none';node=node.nextElementSibling;
           }
         }
+      });
+      // ── READ-ONLY: ล็อก Sidebar ทั้ง 2 ข้างสมบูรณ์ — กดอะไรไม่ได้เลย ──
+      ['sideLeft','sideRight'].forEach(function(id){
+        var sb=document.getElementById(id);
+        if(!sb) return;
+        // วาง overlay ทึบแสงบางๆ ครอบทั้ง sidebar
+        var overlay=document.createElement('div');
+        overlay.style.cssText='position:absolute;inset:0;z-index:200;cursor:default;';
+        // ดัก event ทุกชนิดไม่ให้ทะลุลงไป
+        ['click','mousedown','mouseup','touchstart','touchend','keydown','keypress','input','change','focus','scroll'].forEach(function(ev){
+          overlay.addEventListener(ev,function(e){e.stopPropagation();e.preventDefault();},true);
+        });
+        sb.style.position='relative';
+        sb.appendChild(overlay);
+      });
+      // ซ่อนปุ่ม toggle sidebar (ปุ่ม ‹ › ข้างๆ)
+      ['sidebarBtnLeft','sidebarBtnRight'].forEach(function(id){
+        var btn=document.getElementById(id);
+        if(btn){btn.style.display='none';}
       });
     },300);
     updateStats();renderCal();updateRecent();renderTodayOrders();renderPortfolioBar();
