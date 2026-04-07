@@ -3712,11 +3712,6 @@ function checkSharedUrl(){
   try{
     var data=JSON.parse(decodeURIComponent(escape(atob(encoded))));
     _isReadOnly=true;
-    // Show read-only view banner
-    var banner=document.createElement('div');
-    banner.style.cssText='position:fixed;top:0;left:0;right:0;background:rgba(79,122,255,.15);border-bottom:1px solid var(--accent);padding:6px 14px;font-size:11px;color:var(--accent);z-index:999;display:flex;justify-content:space-between;align-items:center;';
-    banner.innerHTML='<span>👀 <strong>โหมดดูเท่านั้น</strong> — Dashboard ที่ถูกแชร์มา (Read-only)</span><button onclick="this.parentElement.remove();window.location.hash=\'\';" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;">✕ ออก</button>';
-    document.body.insertBefore(banner,document.body.firstChild);
     // Load shared data
     if(data.sessions) S.sessions=data.sessions;
     if(data.trades) S.trades=data.trades;
@@ -3724,8 +3719,27 @@ function checkSharedUrl(){
     if(data.portfolio) S.currentPortfolio=data.portfolio;
     // Disable all edit UI
     setTimeout(function(){
-      // hide topbar save button
-      var saveBtn=document.getElementById('saveEntry');if(saveBtn)saveBtn.style.display='none';
+      // ── READ-ONLY: แสดง badge "Read-only" ใน topbar แทน topbar เดิม ──
+      var topbarRight=document.querySelector('.topbar-right');
+      if(topbarRight){
+        // ซ่อน Settings (⚙), Save Entry
+        var menuBtn=document.getElementById('menuBtn');
+        if(menuBtn) menuBtn.parentElement.style.display='none';
+        document.querySelectorAll('.topbar-right .btn-primary').forEach(function(b){b.style.display='none';});
+        // ใส่ badge Read-only เข้าไปใน topbar-right
+        var badge=document.createElement('div');
+        badge.style.cssText='display:flex;align-items:center;gap:8px;background:rgba(79,122,255,.15);border:1px solid var(--accent);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--accent);';
+        badge.innerHTML='👀 <strong>Read-only</strong>';
+        topbarRight.insertBefore(badge,topbarRight.firstChild);
+      }
+      // ── READ-ONLY: ซ่อน Portfolio Bar ──
+      var portBar=document.getElementById('portfolioBar');
+      if(portBar){
+        portBar.style.display='none';
+        // ปรับ layout height เพราะ portfolio bar (44px) หายไป
+        var layout=document.querySelector('.layout');
+        if(layout) layout.style.height='calc(100vh - 50px)';
+      }
       // hide import / add-entry / portfolio-add buttons
       document.querySelectorAll('.btn-save,.btn-primary').forEach(function(b){b.disabled=true;b.style.opacity='0.4';b.style.pointerEvents='none';});
       // ── READ-ONLY: ปิด Dropdown ทั้งหมด ──
