@@ -3655,9 +3655,7 @@ function openShareDashboard(){
   var payload={sessions:S.sessions,trades:S.trades,portfolios:S.portfolios,portfolio:S.currentPortfolio};
   var encoded='';
   try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));}catch(e){encoded='';}
-  // Short hash for display
-  var shortId=encoded.substring(0,8)+'...';
-  // Create share URL with data embedded as hash
+  // Create full share URL with data embedded as hash
   var baseUrl=window.location.origin+window.location.pathname;
   var shareUrl=baseUrl+'#share='+encoded;
   var modal=document.createElement('div');
@@ -3667,40 +3665,82 @@ function openShareDashboard(){
     +'<button onclick="document.getElementById(\'shareDashModal\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;line-height:1;" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text-muted)\'">✕</button>'
     +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">🔗 Share Dashboard</div>'
     +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">สร้างลิ้งค์แชร์ข้อมูลเทรดของคุณ — ผู้รับสามารถดูข้อมูลแบบ Read-only ได้ (ไม่สามารถแก้ไขได้)</div>'
-    +'<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">'
+    +'<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;">'
     +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">📊 ข้อมูลที่จะแชร์ (พอร์ต: <strong style="color:var(--accent);">'+escHtml(S.portfolios[S.currentPortfolio]&&S.portfolios[S.currentPortfolio].name||'Default')+'</strong>)</div>'
     +'<div style="font-size:11px;display:flex;gap:12px;">'
     +'<span>📈 Trades: <strong>'+Object.values(S.trades).reduce(function(s,a){return s+a.length;},0)+'</strong></span>'
     +'<span>📅 Days: <strong>'+Object.keys(S.sessions).length+'</strong></span>'
     +'</div></div>'
-    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">ลิ้งค์ (คลิกเพื่อคัดลอก)</div>'
-    +'<div id="shareUrlBox" onclick="copyShareUrl()" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:10px;font-family:var(--font-mono);color:var(--accent);cursor:pointer;word-break:break-all;max-height:60px;overflow-y:auto;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+baseUrl+'#share='+shortId+'</div>'
+    // URL box — เริ่มต้นแสดง "กำลังย่อลิ้งค์..."
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;">'
+    +'<span>ลิ้งค์ (คลิกเพื่อคัดลอก)</span>'
+    +'<span id="shareUrlType" style="font-size:9px;color:var(--text-muted);"></span>'
+    +'</div>'
+    +'<div id="shareUrlBox" onclick="copyShareUrl()" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);cursor:pointer;word-break:break-all;min-height:34px;display:flex;align-items:center;gap:6px;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"><span style="opacity:.5;">⏳</span><span id="shareUrlText">กำลังย่อลิ้งค์...</span></div>'
     +'<div style="margin-top:10px;display:flex;gap:7px;">'
-    +'<button class="btn-primary" onclick="copyShareUrl()" style="flex:1;">📋 คัดลอกลิ้งค์</button>'
+    +'<button class="btn-primary" id="shareUrlCopyBtn" onclick="copyShareUrl()" style="flex:1;" disabled>⏳ กำลังสร้างลิ้งค์...</button>'
     +'<button class="btn-sm" onclick="document.getElementById(\'shareDashModal\').remove()">ปิด</button>'
     +'</div>'
     +'<div style="margin-top:8px;font-size:10px;color:var(--amber);">⚠️ ลิ้งค์มีข้อมูลทั้งหมด — แชร์เฉพาะกับคนที่ไว้ใจเท่านั้น</div>'
     +'</div>';
-  // Store full share URL
+  // Store full share URL as fallback
   modal._shareUrl=shareUrl;
+  modal._shortUrl='';
   document.body.appendChild(modal);
   modal.addEventListener('mousedown',function(e){modal._md=(e.target===modal);});
   modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._md)modal.remove();modal._md=false;});
+  // ── ย่อลิ้งค์ด้วย TinyURL API ──
+  _shortenWithTinyUrl(shareUrl, function(shortUrl){
+    var modal=document.getElementById('shareDashModal');
+    if(!modal) return;
+    var box=document.getElementById('shareUrlBox');
+    var txt=document.getElementById('shareUrlText');
+    var typeLabel=document.getElementById('shareUrlType');
+    var copyBtn=document.getElementById('shareUrlCopyBtn');
+    if(shortUrl){
+      modal._shortUrl=shortUrl;
+      if(txt) txt.textContent=shortUrl;
+      if(box){box.querySelector('span').textContent='🔗';box.style.color='var(--accent)';}
+      if(typeLabel) typeLabel.innerHTML='<span style="color:var(--green);">✓ TinyURL</span>';
+      if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์สั้น';}
+    } else {
+      // fallback: แสดงลิ้งค์เต็มแต่ย่อด้วย substring
+      if(txt) txt.textContent=shareUrl.substring(0,60)+'...';
+      if(box){box.querySelector('span').textContent='🔗';box.style.color='var(--accent)';}
+      if(typeLabel) typeLabel.innerHTML='<span style="color:var(--amber);">⚠ ลิ้งค์เต็ม (TinyURL ไม่ตอบสนอง)</span>';
+      if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์';}
+    }
+  });
+}
+async function _shortenWithTinyUrl(longUrl, callback){
+  try{
+    // TinyURL create API — ไม่ต้อง key, รองรับ CORS
+    var res=await fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var short=await res.text();
+    // ตรวจว่าเป็น URL จริง
+    if(short&&short.startsWith('https://tinyurl.com/')) callback(short.trim());
+    else callback('');
+  }catch(e){
+    console.warn('TinyURL failed:',e.message);
+    callback('');
+  }
 }
 function copyShareUrl(){
   var modal=document.getElementById('shareDashModal');
-  if(!modal||!modal._shareUrl) return;
+  if(!modal) return;
+  // ใช้ short URL ถ้ามี ไม่งั้นใช้ full URL
+  var urlToCopy=modal._shortUrl||modal._shareUrl;
+  if(!urlToCopy) return;
   function onCopied(){
     showToast('📋 คัดลอกลิ้งค์แล้ว!','success');
-    // Change button text temporarily
-    var btn=modal.querySelector('.btn-primary');
+    var btn=document.getElementById('shareUrlCopyBtn');
     if(btn){var orig=btn.innerHTML;btn.innerHTML='✅ คัดลอกแล้ว!';btn.style.background='var(--green)';setTimeout(function(){btn.innerHTML=orig;btn.style.background='';},2000);}
-    // Highlight URL box
     var box=document.getElementById('shareUrlBox');
-    if(box){box.style.borderColor='var(--green)';box.style.color='var(--green)';setTimeout(function(){box.style.borderColor='';box.style.color='var(--accent)';},2000);}
+    if(box){box.style.borderColor='var(--green)';setTimeout(function(){box.style.borderColor='';},2000);}
   }
-  navigator.clipboard.writeText(modal._shareUrl).then(onCopied).catch(function(){
-    var ta=document.createElement('textarea');ta.value=modal._shareUrl;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();onCopied();
+  navigator.clipboard.writeText(urlToCopy).then(onCopied).catch(function(){
+    var ta=document.createElement('textarea');ta.value=urlToCopy;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();onCopied();
   });
 }
 // Read shared data from URL on load
