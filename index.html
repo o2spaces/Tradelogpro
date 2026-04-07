@@ -3728,6 +3728,51 @@ function checkSharedUrl(){
       var saveBtn=document.getElementById('saveEntry');if(saveBtn)saveBtn.style.display='none';
       // hide import / add-entry / portfolio-add buttons
       document.querySelectorAll('.btn-save,.btn-primary').forEach(function(b){b.disabled=true;b.style.opacity='0.4';b.style.pointerEvents='none';});
+      // ── READ-ONLY: ปิด Dropdown ทั้งหมด ──
+      document.querySelectorAll('select').forEach(function(s){
+        s.disabled=true;
+        s.style.pointerEvents='none';
+        s.style.opacity='0.5';
+        s.style.cursor='not-allowed';
+      });
+      // ── READ-ONLY: ห้ามพิมพ์ใน Note ทั้ง Sidebar (rNotes) และ Comment ใน modal (dComment) ──
+      ['rNotes','dComment'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(!el) return;
+        el.readOnly=true;
+        el.style.pointerEvents='none';
+        el.style.opacity='0.5';
+        el.style.cursor='not-allowed';
+      });
+      // ห้ามพิมพ์ใน textarea ทุกตัวใน sidebar-right และ modal
+      document.querySelectorAll('.sidebar-right textarea, .field-textarea, .ai-input-row textarea').forEach(function(ta){
+        ta.readOnly=true;
+        ta.style.pointerEvents='none';
+        ta.style.opacity='0.5';
+        ta.style.cursor='not-allowed';
+      });
+      // ── READ-ONLY: ซ่อน AI Coach และ AI Analysis ──
+      // ซ่อน nav-item AI Coach ใน sidebar ซ้าย
+      document.querySelectorAll('.nav-item').forEach(function(item){
+        if(item.textContent.indexOf('AI Coach')>=0) item.style.display='none';
+      });
+      // ซ่อนปุ่ม AI Analysis ใน day modal และ sidebar
+      document.querySelectorAll('[onclick*="openAI"],[onclick*="analyzeDay"]').forEach(function(el){
+        el.style.display='none';
+      });
+      // ซ่อน AI Coach ใน dropdown menu
+      var aiSection=document.querySelector('.drop-cat');
+      document.querySelectorAll('.drop-cat').forEach(function(cat){
+        if(cat.textContent.indexOf('AI')>=0){
+          // hide this category header and its following drop-items
+          var node=cat;
+          cat.style.display='none';
+          while(node.nextElementSibling&&node.nextElementSibling.classList.contains('drop-item')){
+            node.nextElementSibling.style.display='none';
+            node=node.nextElementSibling;
+          }
+        }
+      });
     },300);
     updateStats();renderCal();updateRecent();renderTodayOrders();renderPortfolioBar();
     showToast('👀 กำลังดู Dashboard ที่แชร์','success');
