@@ -4527,7 +4527,7 @@ function openShareDashboard(){
   var encoded='';
   try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));}catch(e){encoded='';}
   var baseUrl=window.location.origin+window.location.pathname;
-  var shareUrl=baseUrl+'#share='+encoded;
+  var shareUrl=baseUrl+'?share='+encoded;
   var modal=document.createElement('div');
   modal.id='shareDashModal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center;';
@@ -4634,16 +4634,23 @@ function _renderShareTab(tab){
   }
 }
 async function _shortenWithTinyUrl(longUrl, callback){
+  // Try is.gd first (supports CORS)
   try{
-    var res=await fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl));
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    var short=await res.text();
-    if(short&&short.startsWith('https://tinyurl.com/')) callback(short.trim());
-    else callback('');
-  }catch(e){
-    console.warn('TinyURL failed:',e.message);
-    callback('');
-  }
+    var res=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(longUrl));
+    if(res.ok){
+      var short=await res.text();
+      if(short&&short.startsWith('https://is.gd/')){callback(short.trim());return;}
+    }
+  }catch(e){ console.warn('is.gd failed:',e.message); }
+  // Try TinyURL via CORS proxy
+  try{
+    var res2=await fetch('https://corsproxy.io/?'+encodeURIComponent('https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl)));
+    if(res2.ok){
+      var short2=await res2.text();
+      if(short2&&short2.startsWith('https://tinyurl.com/')){callback(short2.trim());return;}
+    }
+  }catch(e){ console.warn('TinyURL proxy failed:',e.message); }
+  callback('');
 }
 function copyShareUrl(){
   var modal=document.getElementById('shareDashModal');
@@ -4664,9 +4671,15 @@ function copyShareUrl(){
 }
 // Read shared data from URL on load
 function checkSharedUrl(){
-  var hash=window.location.hash;
-  if(!hash||!hash.startsWith('#share=')) return;
-  var encoded=hash.substring(7);
+  var search=window.location.search;
+  var encoded='';
+  if(search&&search.includes('?share=')){
+    encoded=search.substring(search.indexOf('?share=')+7);
+  } else {
+    // backward compat: also check hash
+    var hash=window.location.hash;
+    if(hash&&hash.startsWith('#share=')) encoded=hash.substring(7);
+  }
   if(!encoded) return;
   try{
     var data=JSON.parse(decodeURIComponent(escape(atob(encoded))));
