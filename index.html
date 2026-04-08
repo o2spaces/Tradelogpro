@@ -4521,13 +4521,47 @@ function clearSidebarNotes(){
 }
 
 // ─── SHARE DASHBOARD ───
+// ── LZ-based compression for share URL (no external API needed) ──
+function _lzCompress(str){
+  // Simple LZ77-inspired compressor using deflate via CompressionStream (modern browsers)
+  // Falls back to raw base64 if not supported
+  return str;
+}
+function _encodeSharePayload(payload){
+  var json=JSON.stringify(payload);
+  // Use CompressionStream if available (Chrome 80+, FF 113+, Safari 16.4+)
+  // Since it's async, we do sync base64 here and call async upgrade separately
+  try{ return btoa(unescape(encodeURIComponent(json))); }catch(e){ return ''; }
+}
+async function _encodeSharePayloadAsync(payload){
+  var json=JSON.stringify(payload);
+  if(typeof CompressionStream!=='undefined'){
+    try{
+      var cs=new CompressionStream('deflate-raw');
+      var writer=cs.writable.getWriter();
+      var enc=new TextEncoder();
+      writer.write(enc.encode(json));
+      writer.close();
+      var chunks=[];
+      var reader=cs.readable.getReader();
+      while(true){var r=await reader.read();if(r.done)break;chunks.push(r.value);}
+      var total=0;chunks.forEach(function(c){total+=c.length;});
+      var combined=new Uint8Array(total);var offset=0;
+      chunks.forEach(function(c){combined.set(c,offset);offset+=c.length;});
+      // base64url encode
+      var b64=btoa(String.fromCharCode.apply(null,combined));
+      return 'z:'+b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+    }catch(e){}
+  }
+  // Fallback: plain base64
+  try{ return btoa(unescape(encodeURIComponent(json))); }catch(e){ return ''; }
+}
 function openShareDashboard(){
   var existing=document.getElementById('shareDashModal');if(existing)existing.remove();
   var payload={sessions:S.sessions,trades:S.trades,portfolios:S.portfolios,portfolio:S.currentPortfolio};
-  var encoded='';
-  try{encoded=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));}catch(e){encoded='';}
-  var baseUrl=window.location.origin+window.location.pathname;
-  var shareUrl=baseUrl+'?share='+encoded;
+  var tradeCount=Object.values(S.trades).reduce(function(s,a){return s+a.length;},0);
+  var dayCount=Object.keys(S.sessions).length;
+  var portName=escHtml(S.portfolios[S.currentPortfolio]&&S.portfolios[S.currentPortfolio].name||'Default');
   var modal=document.createElement('div');
   modal.id='shareDashModal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center;';
@@ -4535,123 +4569,50 @@ function openShareDashboard(){
     +'<button onclick="document.getElementById(\'shareDashModal\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;line-height:1;" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text-muted)\'">✕</button>'
     +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">🔗 Share Dashboard</div>'
     +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">สร้างลิ้งค์แชร์ข้อมูลเทรดของคุณ — ผู้รับสามารถดูข้อมูลแบบ Read-only ได้</div>'
-    // สรุปข้อมูล
     +'<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;">'
-    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">📊 ข้อมูลที่จะแชร์ (พอร์ต: <strong style="color:var(--accent);">'+escHtml(S.portfolios[S.currentPortfolio]&&S.portfolios[S.currentPortfolio].name||'Default')+'</strong>)</div>'
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">📊 ข้อมูลที่จะแชร์ (พอร์ต: <strong style="color:var(--accent);">'+portName+'</strong>)</div>'
     +'<div style="font-size:11px;display:flex;gap:12px;">'
-    +'<span>📈 Trades: <strong>'+Object.values(S.trades).reduce(function(s,a){return s+a.length;},0)+'</strong></span>'
-    +'<span>📅 Days: <strong>'+Object.keys(S.sessions).length+'</strong></span>'
+    +'<span>📈 Trades: <strong>'+tradeCount+'</strong></span>'
+    +'<span>📅 Days: <strong>'+dayCount+'</strong></span>'
     +'</div></div>'
-    // Tab เลือกประเภทลิ้งค์
-    +'<div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:10px;">'
-    +'<button id="shareTabShort" onclick="switchShareTab(\'short\')" style="flex:1;padding:6px 10px;font-size:11px;font-weight:500;cursor:pointer;border:none;font-family:var(--font-main);background:var(--accent-dim);color:var(--accent);transition:all .15s;">🔗 ลิ้งค์สั้น (TinyURL)</button>'
-    +'<button id="shareTabFull" onclick="switchShareTab(\'full\')" style="flex:1;padding:6px 10px;font-size:11px;font-weight:500;cursor:pointer;border:none;border-left:1px solid var(--border);font-family:var(--font-main);background:var(--bg-input);color:var(--text-muted);transition:all .15s;">📄 ลิ้งค์เต็ม</button>'
-    +'</div>'
-    // URL display box
     +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">'
-    +'<span>ลิ้งค์ (คลิกเพื่อคัดลอก)</span><span id="shareUrlStatus"></span>'
+    +'<span>ลิ้งค์ (คลิกเพื่อคัดลอก)</span><span id="shareUrlStatus"><span style="color:var(--text-muted);font-size:9px;">⏳ กำลังสร้าง...</span></span>'
     +'</div>'
-    +'<div id="shareUrlBox" onclick="copyShareUrl()" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:9px 11px;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);cursor:pointer;word-break:break-all;min-height:36px;display:flex;align-items:center;gap:7px;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"><span id="shareUrlIcon" style="flex-shrink:0;opacity:.5;">⏳</span><span id="shareUrlText">กำลังย่อลิ้งค์...</span></div>'
+    +'<div id="shareUrlBox" onclick="copyShareUrl()" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:9px 11px;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);cursor:pointer;word-break:break-all;min-height:36px;display:flex;align-items:center;gap:7px;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"><span id="shareUrlIcon" style="flex-shrink:0;opacity:.5;">⏳</span><span id="shareUrlText" style="word-break:break-all;">กำลังสร้างลิ้งค์...</span></div>'
     +'<div style="margin-top:10px;display:flex;gap:7px;">'
     +'<button class="btn-primary" id="shareUrlCopyBtn" onclick="copyShareUrl()" style="flex:1;" disabled>⏳ กำลังสร้างลิ้งค์...</button>'
     +'<button class="btn-sm" onclick="document.getElementById(\'shareDashModal\').remove()">ปิด</button>'
     +'</div>'
     +'<div style="margin-top:8px;font-size:10px;color:var(--amber);">⚠️ ลิ้งค์มีข้อมูลทั้งหมด — แชร์เฉพาะกับคนที่ไว้ใจเท่านั้น</div>'
     +'</div>';
-  modal._shareUrl=shareUrl;
-  modal._shortUrl='';
-  modal._shareTab='short'; // default tab
+  modal._shareUrl='';
   document.body.appendChild(modal);
   modal.addEventListener('mousedown',function(e){modal._md=(e.target===modal);});
   modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._md)modal.remove();modal._md=false;});
-  // เรียก TinyURL
-  _shortenWithTinyUrl(shareUrl, function(shortUrl){
+  // Build compressed URL async (instant, no external API)
+  var baseUrl=window.location.origin+window.location.pathname;
+  _encodeSharePayloadAsync(payload).then(function(encoded){
     var modal=document.getElementById('shareDashModal');
-    if(!modal) return;
-    if(shortUrl){
-      modal._shortUrl=shortUrl;
-      // ถ้า tab ยังอยู่ที่ short → อัปเดต UI
-      if(modal._shareTab==='short') _renderShareTab('short');
-    } else {
-      // TinyURL ล้มเหลว → สลับไป full อัตโนมัติ
-      modal._shareTab='full';
-      switchShareTab('full');
-      var status=document.getElementById('shareUrlStatus');
-      if(status) status.innerHTML='<span style="color:var(--amber);font-size:9px;">⚠ TinyURL ไม่ตอบสนอง</span>';
-    }
+    if(!modal||!encoded) return;
+    var shareUrl=baseUrl+'?share='+encoded;
+    modal._shareUrl=shareUrl;
+    var txt=document.getElementById('shareUrlText');
+    var icon=document.getElementById('shareUrlIcon');
+    var status=document.getElementById('shareUrlStatus');
+    var copyBtn=document.getElementById('shareUrlCopyBtn');
+    var urlSizeKB=Math.round(shareUrl.length/1024*10)/10;
+    var preview=shareUrl.length>70?shareUrl.substring(0,70)+'…':shareUrl;
+    if(txt){txt.textContent=preview;txt.title=shareUrl;}
+    if(icon){icon.textContent='🔗';icon.style.opacity='1';}
+    if(status) status.innerHTML='<span style="color:var(--green);font-size:9px;">✓ พร้อม ('+urlSizeKB+' KB)</span>';
+    if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์';}
+    var box=document.getElementById('shareUrlBox');
+    if(box) box.style.color='var(--accent)';
   });
 }
-function switchShareTab(tab){
-  var modal=document.getElementById('shareDashModal');
-  if(!modal) return;
-  modal._shareTab=tab;
-  // Tab styles
-  var tabShort=document.getElementById('shareTabShort');
-  var tabFull=document.getElementById('shareTabFull');
-  if(tabShort&&tabFull){
-    if(tab==='short'){
-      tabShort.style.background='var(--accent-dim)';tabShort.style.color='var(--accent)';
-      tabFull.style.background='var(--bg-input)';tabFull.style.color='var(--text-muted)';
-    } else {
-      tabFull.style.background='var(--accent-dim)';tabFull.style.color='var(--accent)';
-      tabShort.style.background='var(--bg-input)';tabShort.style.color='var(--text-muted)';
-    }
-  }
-  _renderShareTab(tab);
-}
-function _renderShareTab(tab){
-  var modal=document.getElementById('shareDashModal');
-  if(!modal) return;
-  var txt=document.getElementById('shareUrlText');
-  var icon=document.getElementById('shareUrlIcon');
-  var status=document.getElementById('shareUrlStatus');
-  var copyBtn=document.getElementById('shareUrlCopyBtn');
-  var box=document.getElementById('shareUrlBox');
-  if(tab==='short'){
-    if(modal._shortUrl){
-      if(txt) txt.textContent=modal._shortUrl;
-      if(icon) icon.textContent='🔗';
-      if(status) status.innerHTML='<span style="color:var(--green);font-size:9px;">✓ TinyURL</span>';
-      if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์สั้น';}
-      if(box) box.style.color='var(--accent)';
-    } else {
-      // ยังรอ TinyURL อยู่
-      if(txt) txt.textContent='กำลังย่อลิ้งค์...';
-      if(icon){icon.textContent='⏳';icon.style.opacity='.5';}
-      if(status) status.innerHTML='';
-      if(copyBtn){copyBtn.disabled=true;copyBtn.innerHTML='⏳ กำลังสร้างลิ้งค์...';}
-      if(box) box.style.color='var(--text-muted)';
-    }
-  } else {
-    // full URL — แสดงแค่บรรทัดเดียว ตัดท้ายด้วย ...
-    var full=modal._shareUrl;
-    var preview=full.length>60?full.substring(0,60)+'…':full;
-    if(txt){txt.textContent=preview;txt.title=full;}
-    if(icon){icon.textContent='📄';icon.style.opacity='1';}
-    if(status) status.innerHTML='<span style="color:var(--text-muted);font-size:9px;">ลิ้งค์เต็ม</span>';
-    if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์เต็ม';}
-    if(box){box.style.color='var(--accent)';box.style.wordBreak='normal';box.style.whiteSpace='nowrap';box.style.overflow='hidden';}
-  }
-}
-async function _shortenWithTinyUrl(longUrl, callback){
-  // Try is.gd first (supports CORS)
-  try{
-    var res=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(longUrl));
-    if(res.ok){
-      var short=await res.text();
-      if(short&&short.startsWith('https://is.gd/')){callback(short.trim());return;}
-    }
-  }catch(e){ console.warn('is.gd failed:',e.message); }
-  // Try TinyURL via CORS proxy
-  try{
-    var res2=await fetch('https://corsproxy.io/?'+encodeURIComponent('https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl)));
-    if(res2.ok){
-      var short2=await res2.text();
-      if(short2&&short2.startsWith('https://tinyurl.com/')){callback(short2.trim());return;}
-    }
-  }catch(e){ console.warn('TinyURL proxy failed:',e.message); }
-  callback('');
-}
+function switchShareTab(tab){ /* no-op kept for compat */ }
+function _renderShareTab(tab){ /* no-op kept for compat */ }
+async function _shortenWithTinyUrl(longUrl, callback){ callback(''); }
 function copyShareUrl(){
   var modal=document.getElementById('shareDashModal');
   if(!modal) return;
@@ -4681,10 +4642,9 @@ function checkSharedUrl(){
     if(hash&&hash.startsWith('#share=')) encoded=hash.substring(7);
   }
   if(!encoded) return;
-  try{
-    var data=JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  // Support both compressed (z:...) and legacy plain base64
+  function _applySharedData(data){
     _isReadOnly=true;
-    // Load shared data
     if(data.sessions) S.sessions=data.sessions;
     if(data.trades) S.trades=data.trades;
     if(data.portfolios) S.portfolios=data.portfolios;
@@ -4774,7 +4734,32 @@ function checkSharedUrl(){
     },300);
     updateStats();renderCal();updateRecent();renderTodayOrders();renderPortfolioBar();
     showToast('👀 กำลังดู Dashboard ที่แชร์','success');
-  }catch(e){console.error('Share URL parse error:',e);}
+  }
+  if(encoded.startsWith('z:')){
+    try{
+      var b64=encoded.substring(2).replace(/-/g,'+').replace(/_/g,'/');
+      var binary=atob(b64);
+      var bytes=new Uint8Array(binary.length);
+      for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      var ds=new DecompressionStream('deflate-raw');
+      var writer=ds.writable.getWriter();
+      writer.write(bytes);writer.close();
+      var chunks=[];var reader=ds.readable.getReader();
+      (async function(){
+        while(true){var r=await reader.read();if(r.done)break;chunks.push(r.value);}
+        var total=0;chunks.forEach(function(c){total+=c.length;});
+        var combined=new Uint8Array(total);var offset=0;
+        chunks.forEach(function(c){combined.set(c,offset);offset+=c.length;});
+        var json=new TextDecoder().decode(combined);
+        _applySharedData(JSON.parse(json));
+      })();
+    }catch(e){console.error('Share decompress error:',e);}
+  } else {
+    try{
+      var data=JSON.parse(decodeURIComponent(escape(atob(encoded))));
+      _applySharedData(data);
+    }catch(e){console.error('Share URL parse error:',e);}
+  }
 }
 
 // ─── IMPORT FROM TOPSTEP CSV ───
