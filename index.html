@@ -443,6 +443,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
           <div style="height:1px;background:var(--border);margin:3px 0;"></div>
           <div class="drop-cat">ทั่วไป</div>
           <div class="drop-item" onclick="openShareDashboard();closeMenu()">🔗 Share Dashboard</div>
+          <div class="drop-item" onclick="openFeesConfig();closeMenu()">💰 Fees &amp; Commission</div>
           <div class="drop-item" onclick="openSheet();closeMenu()">🔗 Google Sheet URL</div>
           <div class="drop-item" onclick="showToast('กำลังพัฒนา...','success');closeMenu()">❓ Help & Tutorials</div>
         </div>
@@ -1802,6 +1803,18 @@ function renderPortfolioBar(){
   bar.innerHTML=html;
 }
 function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getFundList(){
+  var saved=localStorage.getItem('tj_fund_list');
+  var list=saved?JSON.parse(saved):['Topstep','Lucid','Apex'];
+  return list;
+}
+function saveFundList(list){localStorage.setItem('tj_fund_list',JSON.stringify(list));}
+function buildFundOptions(selected){
+  var list=getFundList();
+  var opts=list.map(function(f){return '<option value="'+escHtml(f)+'"'+(f===selected?' selected':'')+'>'+escHtml(f)+'</option>';}).join('');
+  opts+='<option value="__custom__">+ เพิ่มใหม่...</option>';
+  return opts;
+}
 function addPortfolio(){
   var modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:600;display:flex;align-items:center;justify-content:center;';
@@ -1809,7 +1822,9 @@ function addPortfolio(){
     +'<div style="font-size:13px;font-weight:600;margin-bottom:12px;">📁 เพิ่มพอร์ตใหม่</div>'
     +'<div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text-muted);">ชื่อพอร์ต</label><input id="newPortName" class="settings-input" placeholder="e.g. Prop Firm A" style="margin-top:4px;"></div>'
     +'<div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text-muted);">Balance เริ่มต้น ($)</label><input id="newPortBal" type="number" class="settings-input" placeholder="10000" style="margin-top:4px;"></div>'
-    +'<div style="margin-bottom:14px;"><label style="font-size:10px;color:var(--text-muted);">กองทุน / บัญชี (ถ้ามี)</label><input id="newPortFund" class="settings-input" placeholder="e.g. FTMO, MyForexFunds" style="margin-top:4px;"></div>'
+    +'<div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text-muted);">กองทุน / บัญชี</label>'
+    +'<select id="newPortFundSel" class="settings-input" style="margin-top:4px;" onchange="onFundSelChange(this,\'newPortFundCustom\')">'+buildFundOptions('')+'</select>'
+    +'<input id="newPortFundCustom" class="settings-input" placeholder="ชื่อกองทุน/บัญชีใหม่" style="margin-top:4px;display:none;"></div>'
     +'<div style="display:flex;gap:7px;">'
     +'<button class="btn-primary" onclick="confirmAddPortfolio(this)">✓ เพิ่มพอร์ต</button>'
     +'<button class="btn-sm" onclick="this.closest(\'div[style*=fixed]\').remove()">Cancel</button>'
@@ -1818,11 +1833,31 @@ function addPortfolio(){
   modal.addEventListener('mousedown',function(e){modal._mdOnBack=(e.target===modal);});modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._mdOnBack)modal.remove();modal._mdOnBack=false;});
   setTimeout(function(){var el=document.getElementById('newPortName');if(el)el.focus();},50);
 }
+function onFundSelChange(sel,customId){
+  var customEl=document.getElementById(customId);
+  if(!customEl) return;
+  if(sel.value==='__custom__'){customEl.style.display='block';customEl.focus();}
+  else{customEl.style.display='none';}
+}
+function getFundValue(selId,customId){
+  var sel=document.getElementById(selId);
+  if(!sel) return '';
+  if(sel.value==='__custom__'){
+    var customEl=document.getElementById(customId);
+    var val=(customEl?customEl.value:'').trim();
+    if(val){
+      var list=getFundList();
+      if(list.indexOf(val)===-1){list.push(val);saveFundList(list);}
+    }
+    return val;
+  }
+  return sel.value;
+}
 function confirmAddPortfolio(btn){
   var name=(document.getElementById('newPortName').value||'').trim();
   if(!name){showToast('กรุณาใส่ชื่อพอร์ต','error');return;}
   var bal=parseFloat(document.getElementById('newPortBal').value)||0;
-  var fund=(document.getElementById('newPortFund').value||'').trim();
+  var fund=getFundValue('newPortFundSel','newPortFundCustom');
   var id='port_'+Date.now();
   S.portfolios[id]={name:name,balance:bal,fund:fund};
   localStorage.setItem('port_'+id+'_s','{}');
@@ -1841,7 +1876,9 @@ function editPortfolio(id){
     +'<div style="font-size:13px;font-weight:600;margin-bottom:12px;">✎ แก้ไขพอร์ต</div>'
     +'<div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text-muted);">ชื่อพอร์ต</label><input id="editPortName" class="settings-input" value="'+escHtml(p.name)+'" style="margin-top:4px;"></div>'
     +'<div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text-muted);">Balance เริ่มต้น ($)</label><input id="editPortBal" type="number" class="settings-input" value="'+(p.balance||0)+'" style="margin-top:4px;"></div>'
-    +'<div style="margin-bottom:14px;"><label style="font-size:10px;color:var(--text-muted);">กองทุน / บัญชี</label><input id="editPortFund" class="settings-input" value="'+escHtml(p.fund||'')+'" style="margin-top:4px;"></div>'
+    +'<div style="margin-bottom:14px;"><label style="font-size:10px;color:var(--text-muted);">กองทุน / บัญชี</label>'
+    +'<select id="editPortFundSel" class="settings-input" style="margin-top:4px;" onchange="onFundSelChange(this,\'editPortFundCustom\')">'+buildFundOptions(p.fund||'')+'</select>'
+    +'<input id="editPortFundCustom" class="settings-input" placeholder="ชื่อกองทุน/บัญชีใหม่" style="margin-top:4px;display:none;"></div>'
     +'<div style="display:flex;gap:7px;justify-content:space-between;">'
     +'<div style="display:flex;gap:7px;"><button class="btn-primary" onclick="confirmEditPortfolio(\''+id+'\',this)">💾 บันทึก</button>'
     +'<button class="btn-sm" onclick="this.closest(\'div[style*=fixed]\').remove()">Cancel</button></div>'
@@ -1855,7 +1892,7 @@ function confirmEditPortfolio(id,btn){
   if(!name){showToast('กรุณาใส่ชื่อพอร์ต','error');return;}
   S.portfolios[id].name=name;
   S.portfolios[id].balance=parseFloat(document.getElementById('editPortBal').value)||0;
-  S.portfolios[id].fund=(document.getElementById('editPortFund').value||'').trim();
+  S.portfolios[id].fund=getFundValue('editPortFundSel','editPortFundCustom');
   btn.closest('div[style*=fixed]').remove();
   renderPortfolioBar();
   localStorage.setItem('tj_ports',JSON.stringify(S.portfolios));
@@ -1883,7 +1920,117 @@ function deletePortfolio(id,btn){
   showToast('🗑 ลบพอร์ตแล้ว','success');
 }
 
-// ── Dropdown options persistence ──
+// ── FEES & COMMISSION CONFIG ───────────────────────────────────
+var FC_ASSETS=['NQ1','MNQ1','GC1','MGC1','XAU/USD'];
+var FC_DEFAULT_FEES={NQ1:2.80,MNQ1:0.74,GC1:3.24,MGC1:1.24,'XAU/USD':0};
+var FC_DEFAULT_COMM={NQ1:1.00,MNQ1:0.50,GC1:1.00,MGC1:0.50,'XAU/USD':0};
+
+function fcStorageKey(fund){return 'tj_fc_'+(fund||'default');}
+function loadFCConfig(fund){
+  var saved=localStorage.getItem(fcStorageKey(fund));
+  if(saved) return JSON.parse(saved);
+  // fallback defaults
+  var cfg={fees:{},comm:{}};
+  FC_ASSETS.forEach(function(a){cfg.fees[a]=FC_DEFAULT_FEES[a]||0;cfg.comm[a]=FC_DEFAULT_COMM[a]||0;});
+  return cfg;
+}
+function saveFCConfig(fund,cfg){
+  localStorage.setItem(fcStorageKey(fund),JSON.stringify(cfg));
+  if(S.scriptUrl) sendSheet('saveSettings',{key:'fees_config_'+fund,value:JSON.stringify(cfg)});
+}
+function getCurrentFund(){
+  var p=S.portfolios[S.currentPortfolio];
+  return (p&&p.fund)?p.fund:'default';
+}
+
+function openFeesConfig(){
+  var existing=document.getElementById('_feesModal');if(existing)existing.remove();
+  var fundList=getFundList();
+  var currentFund=getCurrentFund();
+
+  var modal=document.createElement('div');
+  modal.id='_feesModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:600;display:flex;align-items:center;justify-content:center;';
+
+  function buildTable(fund){
+    var cfg=loadFCConfig(fund);
+    var rows=FC_ASSETS.map(function(a){
+      var f=cfg.fees[a]!==undefined?cfg.fees[a]:(FC_DEFAULT_FEES[a]||0);
+      var c=cfg.comm[a]!==undefined?cfg.comm[a]:(FC_DEFAULT_COMM[a]||0);
+      return '<tr>'
+        +'<td style="padding:6px 8px;font-size:12px;font-weight:500;font-family:var(--font-mono);color:var(--accent);">'+a+'</td>'
+        +'<td style="padding:4px 6px;"><input type="number" step="0.01" class="form-input" data-fc-fees="'+a+'" value="'+f+'" style="width:90px;font-size:12px;text-align:right;"></td>'
+        +'<td style="padding:4px 6px;"><input type="number" step="0.01" class="form-input" data-fc-comm="'+a+'" value="'+c+'" style="width:90px;font-size:12px;text-align:right;"></td>'
+        +'</tr>';
+    }).join('');
+    return '<table style="width:100%;border-collapse:collapse;">'
+      +'<thead><tr style="border-bottom:1px solid var(--border);">'
+      +'<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;">ASSET</th>'
+      +'<th style="text-align:right;padding:5px 6px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;">FEES ($/lot)</th>'
+      +'<th style="text-align:right;padding:5px 6px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;">COMM ($/lot)</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+
+  var fundOpts=fundList.map(function(f){return '<option value="'+escHtml(f)+'"'+(f===currentFund?' selected':'')+'>'+escHtml(f)+'</option>';}).join('');
+  fundOpts+='<option value="default"'+(currentFund==='default'?' selected':'')+'>default</option>';
+
+  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;min-width:360px;max-width:440px;">'
+    +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">💰 Fees &amp; Commission Config</div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">ตั้งค่า Fees และ Commission ต่อ lot แยกตาม กองทุน/บัญชี</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">'
+    +'<label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">กองทุน / บัญชี:</label>'
+    +'<select id="fcFundSel" class="form-input" style="flex:1;" onchange="fcReload(this.value)">'+fundOpts+'</select>'
+    +'</div>'
+    +'<div id="fcTableWrap">'+buildTable(currentFund)+'</div>'
+    +'<div style="font-size:10px;color:var(--text-muted);margin:10px 0 14px;">💡 ค่านี้จะถูกใช้คำนวณ Fees/Comm อัตโนมัติเมื่อกรอก Entry/TP/SL ในพอร์ตที่ใช้กองทุนนี้</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    +'<button onclick="fcSave()" style="background:var(--accent);color:#fff;border:none;padding:7px 18px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-main);">💾 บันทึก</button>'
+    +'<button onclick="document.getElementById(\'_feesModal\').remove()" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);padding:7px 14px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-family:var(--font-main);">ปิด</button>'
+    +'</div></div>';
+
+  document.body.appendChild(modal);
+  modal.addEventListener('mousedown',function(e){if(e.target===modal)modal.remove();});
+}
+
+function fcReload(fund){
+  var wrap=document.getElementById('fcTableWrap');
+  if(!wrap) return;
+  var cfg=loadFCConfig(fund);
+  FC_ASSETS.forEach(function(a){
+    var fEl=wrap.querySelector('[data-fc-fees="'+a+'"]');
+    var cEl=wrap.querySelector('[data-fc-comm="'+a+'"]');
+    if(fEl) fEl.value=cfg.fees[a]!==undefined?cfg.fees[a]:(FC_DEFAULT_FEES[a]||0);
+    if(cEl) cEl.value=cfg.comm[a]!==undefined?cfg.comm[a]:(FC_DEFAULT_COMM[a]||0);
+  });
+}
+
+function fcSave(){
+  var sel=document.getElementById('fcFundSel');
+  if(!sel) return;
+  var fund=sel.value;
+  var wrap=document.getElementById('fcTableWrap');
+  var cfg={fees:{},comm:{}};
+  FC_ASSETS.forEach(function(a){
+    var fEl=wrap.querySelector('[data-fc-fees="'+a+'"]');
+    var cEl=wrap.querySelector('[data-fc-comm="'+a+'"]');
+    cfg.fees[a]=fEl?parseFloat(fEl.value)||0:0;
+    cfg.comm[a]=cEl?parseFloat(cEl.value)||0:0;
+  });
+  saveFCConfig(fund,cfg);
+  showToast('✅ บันทึก Fees & Commission สำหรับ "'+fund+'" แล้ว','success');
+}
+
+function getFeesForAsset(asset){
+  var fund=getCurrentFund();
+  var cfg=loadFCConfig(fund);
+  return cfg.fees[asset]!==undefined?cfg.fees[asset]:(FEES[asset]||0);
+}
+function getCommForAsset(asset){
+  var fund=getCurrentFund();
+  var cfg=loadFCConfig(fund);
+  return cfg.comm[asset]!==undefined?cfg.comm[asset]:(COMM[asset]||0);
+}
+// ──────────────────────────────────────────────────────────────
 var DROP_DEFAULTS = {
   rTrend:   ['Bullish','Bearish','Sideways'],
   rConfirm: ['M1','M5','M15','M30','H1','H4','SMC','Price Action','FIBO'],
@@ -2516,12 +2663,12 @@ function calcAll(){
   var asset=document.getElementById('oAsset').value;
   var lots=parseFloat(document.getElementById('oLots').value)||0;
   // Fees = Exchange fee per lot (round trip)
-  var feeRate=FEES[asset]||0;
+  var feeRate=getFeesForAsset(asset);
   var fees=(lots*feeRate).toFixed(2);
   document.getElementById('oFees').value=fees;
   if(document.getElementById('cFees')) document.getElementById('cFees').textContent='$'+fees;
-  // Commission = Topstep platform fee per round trip
-  var rate=COMM[asset]||0,comm=(lots*rate).toFixed(2);
+  // Commission = platform fee per round trip (from fund config)
+  var rate=getCommForAsset(asset),comm=(lots*rate).toFixed(2);
   document.getElementById('oComm').value=comm;
   if(document.getElementById('cComm')) document.getElementById('cComm').textContent='$'+comm;
   var en=parseFloat(document.getElementById('oEntry').value)||0,sl=parseFloat(document.getElementById('oSL').value)||0,tp=parseFloat(document.getElementById('oTP').value)||0;
