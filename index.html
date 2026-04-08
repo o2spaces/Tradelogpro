@@ -171,6 +171,10 @@ body.modal-open #sidebarBtnRight {
 .stat-label{font-size:11px;color:var(--text-muted);}
 .stat-val{font-size:12px;font-weight:500;font-family:var(--font-mono);}
 .stat-val.pos{color:var(--green);}.stat-val.neg{color:var(--red);}.stat-val.neu{color:var(--text-secondary);}
+.nd-btn{background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;padding:2px 7px;border-radius:4px;font-size:11px;height:24px;display:inline-flex;align-items:center;font-family:var(--font-main);transition:all .12s;}
+.nd-btn:hover{border-color:var(--accent);color:var(--accent);}
+#noteDayEditor img{max-width:100%;height:auto;border-radius:6px;margin:4px 0;cursor:zoom-in;display:block;}
+#noteDayEditor:empty:before{content:attr(data-placeholder);color:var(--text-muted);pointer-events:none;}
 .main{overflow-y:auto;padding:14px;transition:padding .25s;}
 .layout.left-collapsed .main{ padding-left:28px; }
 .layout.right-collapsed .main{ padding-right:28px; }
@@ -664,6 +668,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
   </div>
   <div class="modal-tabs">
     <div class="modal-tab active" onclick="mTab(this,'tComment')">Comment</div>
+    <div class="modal-tab" onclick="mTab(this,'tNoteDay')">Note of Day</div>
     <div class="modal-tab" onclick="mTab(this,'tOrder')">Add Order</div>
     <div class="modal-tab" onclick="mTab(this,'tAnalysis')">Analysis</div>
   </div>
@@ -693,6 +698,68 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
         </table>
       </div>
     </div>
+
+    <!-- NOTE OF THE DAY TAB -->
+    <div id="tNoteDay" style="display:none;">
+      <!-- Toolbar -->
+      <div id="noteDayToolbar" style="display:flex;flex-wrap:wrap;align-items:center;gap:3px;padding:5px 6px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm) var(--radius-sm) 0 0;margin-bottom:0;">
+        <!-- Font size -->
+        <select onchange="ndExec('fontSize',this.value);this.value=''" title="ขนาดตัวอักษร" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;font-size:10px;padding:2px 4px;cursor:pointer;height:24px;font-family:var(--font-main);">
+          <option value="">Size</option>
+          <option value="1">8px</option><option value="2">10px</option><option value="3">12px</option>
+          <option value="4">14px</option><option value="5">18px</option><option value="6">24px</option><option value="7">32px</option>
+        </select>
+        <!-- Bold/Italic/Underline/Strike -->
+        <button onclick="ndExec('bold')" title="Bold" class="nd-btn"><b>B</b></button>
+        <button onclick="ndExec('italic')" title="Italic" class="nd-btn"><i>I</i></button>
+        <button onclick="ndExec('underline')" title="Underline" class="nd-btn"><u>U</u></button>
+        <button onclick="ndExec('strikeThrough')" title="Strikethrough" class="nd-btn" style="text-decoration:line-through;">S</button>
+        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
+        <!-- Alignment -->
+        <button onclick="ndExec('justifyLeft')" title="Align Left" class="nd-btn">⬅</button>
+        <button onclick="ndExec('justifyCenter')" title="Center" class="nd-btn">↔</button>
+        <button onclick="ndExec('justifyRight')" title="Align Right" class="nd-btn">➡</button>
+        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
+        <!-- Lists -->
+        <button onclick="ndExec('insertUnorderedList')" title="Bullet List" class="nd-btn">• List</button>
+        <button onclick="ndExec('insertOrderedList')" title="Numbered List" class="nd-btn">1. List</button>
+        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
+        <!-- Text color -->
+        <label title="สีตัวอักษร" style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:10px;color:var(--text-secondary);">
+          A <input type="color" value="#e8eaf0" onchange="ndExec('foreColor',this.value)" style="width:18px;height:18px;padding:0;border:none;background:none;cursor:pointer;border-radius:3px;">
+        </label>
+        <!-- Highlight -->
+        <label title="ไฮไลท์" style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:10px;color:var(--text-secondary);">
+          🖊 <input type="color" value="#f5a623" onchange="ndExec('hiliteColor',this.value)" style="width:18px;height:18px;padding:0;border:none;background:none;cursor:pointer;border-radius:3px;">
+        </label>
+        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
+        <!-- Image upload -->
+        <button onclick="ndInsertImgClick()" title="แทรกรูป" class="nd-btn">🖼 รูป</button>
+        <input type="file" id="ndImgFile" accept="image/*" style="display:none;" onchange="ndInsertImgFile(event)">
+        <!-- Clear -->
+        <button onclick="ndClear()" title="ล้างทั้งหมด" class="nd-btn" style="margin-left:auto;color:var(--red);border-color:rgba(255,77,106,.4);">✕ Clear</button>
+      </div>
+      <!-- Editor -->
+      <div id="noteDayEditor"
+        contenteditable="true"
+        spellcheck="false"
+        ondrop="ndOnDrop(event)"
+        ondragover="event.preventDefault()"
+        onpaste="ndOnPaste(event)"
+        style="min-height:260px;max-height:420px;overflow-y:auto;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);font-size:13px;line-height:1.65;color:var(--text-primary);outline:none;font-family:var(--font-main);"
+      ></div>
+      <!-- Image fullscreen overlay -->
+      <div id="ndImgOverlay" onclick="ndCloseOverlay()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
+        <img id="ndImgOverlayImg" style="max-width:95vw;max-height:92vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.8);object-fit:contain;">
+        <button onclick="ndCloseOverlay()" style="position:fixed;top:16px;right:20px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10000;">✕</button>
+      </div>
+      <!-- Save button -->
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:7px;">
+        <button class="btn-sm" onclick="ndLoadContent()">↺ โหลดใหม่</button>
+        <button class="btn-primary" onclick="ndSave()">💾 บันทึก Note of Day</button>
+      </div>
+    </div>
+
     <div id="tOrder" style="display:none;">
       <!-- AI Scan -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -760,13 +827,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
               <input class="form-input" id="oSL" type="number" step="any" placeholder="1915.00" oninput="calcAll()">
             </div>
           </div>
-          <div class="fg3">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;">
             <div class="form-field">
               <label style="display:flex;align-items:center;gap:4px;">Risk ($) <span id="oRiskWarnDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;" title="Risk เกิน!"></span></label>
               <input class="form-input" id="oRisk" type="number" step="any" placeholder="50" oninput="calcRiskLots()" style="transition:border-color .2s;">
             </div>
             <div class="form-field"><label>Lots <span style="font-size:9px;color:var(--amber)">(auto)</span></label><input class="form-input" id="oLots" type="number" step="0.01" placeholder="1.00" oninput="calcAll()"></div>
-            <div class="form-field"><label>Commission <span style="font-size:9px;color:var(--amber)">(auto/edit)</span></label><input class="form-input" id="oComm" type="number" step="any" placeholder="auto" oninput="calcPnl()"></div>
+            <div class="form-field"><label>Fees ($) <span style="font-size:9px;color:var(--amber)">(auto/edit)</span></label><input class="form-input" id="oFees" type="number" step="any" placeholder="auto" oninput="calcPnl()"></div>
+            <div class="form-field"><label>Commission ($) <span style="font-size:9px;color:var(--amber)">(auto/edit)</span></label><input class="form-input" id="oComm" type="number" step="any" placeholder="auto" oninput="calcPnl()"></div>
           </div>
           <div id="riskWarnBar" style="display:none;background:var(--red-dim);border:1px solid var(--red);border-radius:var(--radius-sm);padding:5px 9px;font-size:10px;color:var(--red);margin-bottom:7px;align-items:center;justify-content:space-between;gap:8px;"><span id="riskWarnMsg">⚠️ SL ระยะเกิน Risk ที่ตั้งไว้! ตรวจสอบ Lot Size</span><button onclick="dismissRiskWarn()" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:4px;padding:1px 7px;font-size:10px;cursor:pointer;white-space:nowrap;font-family:var(--font-main);flex-shrink:0;">เพิกเฉย ✕</button></div>
           <div class="fg2">
@@ -886,7 +954,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
               <div id="oImgPreview" style="display:none;margin-top:2px;"><a id="oImgAnchor" href="#" target="_blank" style="font-size:10px;color:var(--accent);">🔗 ดูรูป</a></div>
             </div>
           </div>
-          <div class="calc-bar" id="calcBar">Side: <span id="cSide" style="color:var(--amber)">-</span> &nbsp;|&nbsp; Risk: <span id="cPos">-</span> &nbsp;|&nbsp; R:R <span id="cRR">-</span> &nbsp;|&nbsp; Comm: <span id="cComm">$0.00</span></div>
+          <div class="calc-bar" id="calcBar">Side: <span id="cSide" style="color:var(--amber)">-</span> &nbsp;|&nbsp; Risk: <span id="cPos">-</span> &nbsp;|&nbsp; R:R <span id="cRR">-</span> &nbsp;|&nbsp; Fees: <span id="cFees">$0.00</span> &nbsp;|&nbsp; Comm: <span id="cComm">$0.00</span></div>
           <div style="display:flex;gap:7px;margin-top:8px;"><button class="btn-primary" onclick="addTrade()">✓ Add Trade</button><button class="btn-sm" onclick="toggleOF()">Cancel</button></div>
         </div>
       </div>
@@ -943,16 +1011,22 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
 <div class="modal">
   <div class="modal-header"><div><div class="modal-title">🔗 Google Sheet</div><div class="modal-subtitle">เชื่อมต่อกับ Google Sheet</div></div><button class="modal-close" onclick="closeM('mSheet')">✕</button></div>
   <div class="modal-body">
-    <div class="info-box"><span class="step-n">1</span>เปิด Google Sheet → Extensions → Apps Script<br><span class="step-n">2</span>วางโค้ดด้านล่าง → กด <strong>setupSheets()</strong> รันครั้งแรก<br><span class="step-n">3</span>Deploy → Web App → Execute as: <strong>Me</strong> → Access: <strong>Anyone</strong><br><span class="step-n">4</span>Copy URL → วางด้านล่าง → Save &amp; Test<br><span style="font-size:10px;color:var(--amber);margin-top:4px;display:block;">⚡ Sheets ที่สร้าง: Trades | Sessions | Summary | Assets | Log — รองรับ บันทึก/แก้ไข/ลบ + Custom Assets sync</span></div>
+    <div class="info-box"><span class="step-n">1</span>เปิด Google Sheet → Extensions → Apps Script<br><span class="step-n">2</span>วางโค้ดด้านล่าง → กด <strong>setupSheets()</strong> รันครั้งแรก<br><span class="step-n">3</span>Deploy → Web App → Execute as: <strong>Me</strong> → Access: <strong>Anyone</strong><br><span class="step-n">4</span>Copy URL → วางด้านล่าง → Save &amp; Test<br><span style="font-size:10px;color:var(--amber);margin-top:4px;display:block;">⚡ Sheets ที่สร้าง: Trades | Sessions | Summary | Assets | Log — รองรับ Fees + Commission แยกกัน + Log ครบทุก action</span></div>
     <div class="field-label">Apps Script URL</div>
     <input class="settings-input" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec">
     <div style="margin-top:10px;"><div class="field-label" style="margin-bottom:5px;">📋 Code:</div>
     <div class="code-block">/* =========================================
-   TradeLog Pro — Google Apps Script v4.3
+   TradeLog Pro — Google Apps Script v4.5
    รองรับ: Portfolio | Candle | Mode | TF
-           MitigatedZone | Zone | Confirm | Sessions
+           Trend | Zone | Confirm | Sessions
            Emotion | Discipline | MaxRR | SetupClass
            Custom Assets (saveAssets/loadAssets)
+           Fees + Commission แยกกัน
+   Log: ครบทุก action:
+        saveTrade | saveSession | deleteTrade |
+        deleteDay | deletePortfolio | saveAssets |
+        batchSaveTrades | saveSettings
+        พร้อม Portfolio + Result ทุก row
    Sheet: Trades | Sessions | Summary | Assets | Log
    ========================================= */
 
@@ -960,14 +1034,14 @@ var SHEET={TRADES:'Trades',SESSIONS:'Sessions',SUMMARY:'Summary',ASSETS:'Assets'
 var HDR={
   TRADES:[
     'ID','Date','Portfolio','Asset','Side','Lots','Entry','Close','TP','SL',
-    'PnL($)','Commission($)','Result','Risk','MaxRR','TimeInPos',
+    'PnL($)','Fees($)','Commission($)','Result','Risk','MaxRR','TimeInPos',
     'EntryDateTime','CloseDateTime',
     'SetupClass','Candle','Code','Mode','Timeframe',
-    'MitigatedZone','Zone','Confirm','Sessions','Emotion','Discipline',
+    'Trend','Zone','Confirm','Sessions','Emotion','Discipline',
     'Note','ImageLink','UpdatedAt'
   ],
   SESSIONS:[
-    'Date','Portfolio','Emotion','MitigatedZone','Confirm',
+    'Date','Portfolio','Emotion','Trend','Confirm',
     'Sessions','Strategies','Notes',
     'NetPnL($)','TotalTrades','WinRate(%)','GrossProfit($)','GrossLoss($)',
     'AvgWin($)','AvgLoss($)','ProfitFactor','MaxDD($)','SavedAt'
@@ -979,30 +1053,30 @@ var HDR={
     'Emotion','Sessions','UpdatedAt'
   ],
   ASSETS:['Asset','UpdatedAt'],
-  LOG:['Time','Action','Detail']
+  LOG:['Time','Action','Detail','Portfolio','Result']
 };
 
 function doGet(e){
   var p=e&&e.parameter;
   if(p&&p.action==='loadAssets') return _json(loadAssets());
-  return _json({status:'ready',version:'4.0',time:new Date().toISOString()});
+  return _json({status:'ready',version:'4.5',time:new Date().toISOString()});
 }
 
 function doPost(e){
   try{
     var d=JSON.parse(e.postData.contents);
-    _log(d.action,JSON.stringify(d).substring(0,200));
     var res;
-    if(d.action==='saveTrade')     res=saveTrade(d);
-    else if(d.action==='deleteTrade')  res=deleteTrade(d);
-    else if(d.action==='saveSession')  res=saveSession(d);
-    else if(d.action==='deleteDay')    res=deleteDay(d);
-    else if(d.action==='saveAssets')   res=saveAssets(d);
+    if(d.action==='saveTrade')        res=saveTrade(d);
+    else if(d.action==='deleteTrade')     res=deleteTrade(d);
+    else if(d.action==='saveSession')     res=saveSession(d);
+    else if(d.action==='deleteDay')       res=deleteDay(d);
+    else if(d.action==='saveAssets')      res=saveAssets(d);
     else if(d.action==='deletePortfolio') res=deletePortfolio(d);
     else if(d.action==='batchSaveTrades') res=batchSaveTrades(d);
-    else res={status:'error',msg:'unknown action'};
+    else if(d.action==='saveSettings')    res=saveSettings(d);
+    else res={status:'error',msg:'unknown action: '+d.action};
     return _json(res);
-  }catch(err){_log('ERROR',err.toString());return _json({status:'error',msg:err.toString()});}
+  }catch(err){_log('ERROR',err.toString(),'','error');return _json({status:'error',msg:err.toString()});}
 }
 
 /* ── SAVE / LOAD ASSETS ── */
@@ -1013,6 +1087,7 @@ function saveAssets(d){
   if(sh.getLastRow()>1) sh.deleteRows(2,sh.getLastRow()-1);
   var now=_now();
   assets.forEach(function(a){sh.appendRow([a,now]);});
+  _log('saveAssets','count='+assets.length,d.portfolio||'default','ok');
   return {status:'ok',count:assets.length};
 }
 function loadAssets(){
@@ -1020,6 +1095,14 @@ function loadAssets(){
   if(!sh||sh.getLastRow()<2) return {status:'ok',assets:[]};
   var assets=sh.getRange(2,1,sh.getLastRow()-1,1).getValues().map(function(r){return r[0];}).filter(Boolean);
   return {status:'ok',assets:assets};
+}
+
+/* ── SAVE SETTINGS (log dropdown/session/provider changes) ── */
+function saveSettings(d){
+  var key=d.key||'';
+  var value=String(d.value||'').substring(0,250);
+  _log('saveSettings',key+'='+value,d.portfolio||'',  'ok');
+  return {status:'ok',key:key};
 }
 
 /* ── SAVE / UPDATE TRADE ── */
@@ -1033,11 +1116,12 @@ function saveTrade(d){
   var sl=parseFloat(d.sl)||0;
   var pnl=parseFloat(d.pnl)||0;
   var comm=parseFloat(d.commission)||0;
+  var fees=parseFloat(d.fees)||0;
   var maxRR=d.maxRR||'';
   var row=[
     id, d.date||'', d.portfolio||'default',
     d.asset||'', d.side||'', lots, entry, close, tp, sl,
-    pnl, comm, d.result||'', d.risk||'', maxRR, d.timeInPos||'',
+    pnl, fees, comm, d.result||'', d.risk||'', maxRR, d.timeInPos||'',
     d.entryDate||'', d.closeDate||'',
     d.setupClass||'', d.candle||'', d.code||'', d.mode||'', d.tf||'',
     d.trend||'', d.zone||'', d.confirm||'', d.sessions||'',
@@ -1049,6 +1133,7 @@ function saveTrade(d){
   else{ sh.appendRow(row); existing=sh.getLastRow(); }
   _styleTradeRow(sh,existing,d.result,pnl);
   _recalc(d.date, d.portfolio||'default');
+  _log('saveTrade','id='+id+' date='+d.date+' asset='+d.asset+' pnl='+pnl+' fees='+fees+' comm='+comm+' result='+d.result,d.portfolio||'default','ok');
   return {status:'ok',id:id};
 }
 
@@ -1068,10 +1153,11 @@ function batchSaveTrades(d){
     var sl=parseFloat(t.sl)||0;
     var pnl=parseFloat(t.pnl)||0;
     var comm=parseFloat(t.commission)||0;
+    var fees_val=parseFloat(t.fees)||0;
     var row=[
       id, t.date||'', t.portfolio||'default',
       t.asset||'', t.side||'', lots, entry, close, tp, sl,
-      pnl, comm, t.result||'', t.risk||'', t.maxRR||'', t.timeInPos||'',
+      pnl, fees_val, comm, t.result||'', t.risk||'', t.maxRR||'', t.timeInPos||'',
       t.entryDate||'', t.closeDate||'',
       t.setupClass||'', t.candle||'', t.code||'', t.mode||'', t.tf||'',
       t.trend||'', t.zone||'', t.confirm||'', t.sessions||'',
@@ -1087,7 +1173,7 @@ function batchSaveTrades(d){
   });
   // recalc แค่ครั้งเดียวต่อวัน ไม่ซ้ำ
   Object.values(affected).forEach(function(a){ _recalc(a.date,a.portfolio); });
-  _log('batchSaveTrades','count='+trades.length);
+  _log('batchSaveTrades','count='+trades.length,d.portfolio||'default','ok');
   return {status:'ok',count:trades.length};
 }
 
@@ -1096,6 +1182,7 @@ function deleteTrade(d){
   var sh=_sheet(SHEET.TRADES,HDR.TRADES);
   var row=_findRow(sh,1,String(d.id));
   if(row>0){sh.deleteRow(row); _recalc(d.date, d.portfolio||'default');}
+  _log('deleteTrade','id='+d.id+' date='+d.date+' deleted='+(row>0),d.portfolio||'default',row>0?'ok':'not_found');
   return {status:'ok',deleted:row>0};
 }
 
@@ -1134,6 +1221,7 @@ function saveSession(d){
   _colorRow(sh,existing,pnl>0?'#1a2e22':pnl&lt;0?'#2e1a1f':'#1a1c26');
   _stylePnlCell(sh,existing,9,pnl);
   _recalc(d.date, portfolio);
+  _log('saveSession','date='+d.date+' emotion='+d.emotion+' trend='+d.trend+' pnl='+pnl.toFixed(2)+' trades='+total+' wr='+wr+'%',portfolio,'ok');
   return {status:'ok',date:d.date,portfolio:portfolio,netPnl:pnl,winRate:wr};
 }
 
@@ -1152,6 +1240,7 @@ function deleteDay(d){
         sh.deleteRow(i+1);
     }
   });
+  _log('deleteDay','date='+d.date,portfolio,'ok');
   return {status:'ok',date:d.date,portfolio:portfolio};
 }
 
@@ -1168,7 +1257,7 @@ function deletePortfolio(d){
       if(String(vals[i][portCol-1])===portfolio) sh.deleteRow(i+1);
     }
   });
-  _log('deletePortfolio','portfolio='+portfolio);
+  _log('deletePortfolio','portfolio='+portfolio,portfolio,'ok');
   return {status:'ok',portfolio:portfolio};
 }
 
@@ -1258,11 +1347,11 @@ function _findRow2(sh,col1,val1,col2,val2){
   }
   return -1;
 }
-function _log(action,detail){
+function _log(action,detail,portfolio,result){
   try{
     var sh=_sheet(SHEET.LOG,HDR.LOG);
-    sh.appendRow([_now(),action,detail.substring(0,300)]);
-    if(sh.getLastRow()>501) sh.deleteRow(2);
+    sh.appendRow([_now(),action,(detail||'').toString().substring(0,300),portfolio||'',result||'ok']);
+    if(sh.getLastRow()>1001) sh.deleteRow(2);
   }catch(e){}
 }
 function _now(){return Utilities.formatDate(new Date(),'Asia/Bangkok','yyyy-MM-dd HH:mm:ss');}
@@ -1278,7 +1367,7 @@ function setupSheets(){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var def=ss.getSheetByName('Sheet1');
   if(def&amp;&amp;ss.getSheets().length>1) ss.deleteSheet(def);
-  SpreadsheetApp.getUi().alert('✅ TradeLog Pro v4 พร้อม!\n\nSheets: Trades | Sessions | Summary | Assets | Log\nรองรับ Multi-Portfolio + Custom Assets + Fields ใหม่ทั้งหมด');
+  SpreadsheetApp.getUi().alert('✅ TradeLog Pro v4.5 พร้อม!\n\nSheets: Trades | Sessions | Summary | Assets | Log\nรองรับ Multi-Portfolio + Custom Assets + Fees + Commission\nLog: ครบทุก action + saveSettings (dropdown/session/provider)');
 }
 function onOpen(){
   SpreadsheetApp.getUi().createMenu('🔧 TradeLog Pro')
@@ -1534,7 +1623,10 @@ function clearLog(){
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
-var COMM={GC1:3.24,MGC1:1.24,NQ1:2.80,MNQ1:0.74,'XAU/USD':0,EURUSD:0,GBPUSD:0,USDJPY:0,BTCUSD:0};
+// Fees = Exchange/broker fee per lot (round trip)
+var FEES={NQ1:2.80,MNQ1:0.74,GC1:3.24,MGC1:1.24,'XAU/USD':0,EURUSD:0,GBPUSD:0,USDJPY:0,BTCUSD:0};
+// Commission = Topstep platform fee per round trip: Mini=$1.00/lot, Micro=$0.50/lot
+var COMM={NQ1:1.00,GC1:1.00,MNQ1:0.50,MGC1:0.50,'XAU/USD':0,EURUSD:0,GBPUSD:0,USDJPY:0,BTCUSD:0};
 // Point/tick size per asset (for SL distance display in points, fix 5)
 var TICK_SIZE={MNQ1:0.25,NQ1:0.25,MGC1:0.1,GC1:0.1,'XAU/USD':0.01,EURUSD:0.00001,GBPUSD:0.00001,USDJPY:0.001,BTCUSD:1};
 var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1673,6 +1765,7 @@ function confirmAddPortfolio(btn){
   renderPortfolioBar();
   localStorage.setItem('tj_ports',JSON.stringify(S.portfolios));
   showToast('✅ เพิ่มพอร์ต "'+name+'" แล้ว','success');
+  if(S.scriptUrl) sendSheet('saveSettings',{key:'portfolio_add',value:'id='+id+' name='+name+' fund='+(fund||'-')});
 }
 function editPortfolio(id){
   var p=S.portfolios[id];if(!p) return;
@@ -1701,6 +1794,7 @@ function confirmEditPortfolio(id,btn){
   renderPortfolioBar();
   localStorage.setItem('tj_ports',JSON.stringify(S.portfolios));
   showToast('✅ อัปเดตพอร์ตแล้ว','success');
+  if(S.scriptUrl) sendSheet('saveSettings',{key:'portfolio_edit',value:'id='+id+' name='+name+' balance='+(S.portfolios[id].balance||0)+' fund='+(S.portfolios[id].fund||'-')});
 }
 function deletePortfolio(id,btn){
   if(!confirm('ลบพอร์ตนี้? ข้อมูลออเดอร์ในพอร์ตนี้จะหายไปด้วย')) return;
@@ -1766,8 +1860,10 @@ function saveDropOptions(selectId){
   var sel=document.getElementById(selectId); if(!sel) return;
   var opts=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
   localStorage.setItem('tj_drop_'+selectId, JSON.stringify(opts));
-  // Sync asset list to Sheet when oAsset changes (item 4)
+  // Sync asset list to Sheet when oAsset changes
   if(selectId==='oAsset') saveAssetsToSheet();
+  // Log dropdown change to Sheet
+  else if(S.scriptUrl) sendSheet('saveSettings',{key:'dropdown_'+selectId,value:opts.join(',')});
 }
 function pad(n){return n<10?'0'+n:''+n;}
 function dk(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -2228,7 +2324,7 @@ function openM(id){
   document.body.classList.add('modal-open');
 }
 function mTab(el,id){document.querySelectorAll('.modal-tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');mTabById(id);}
-function mTabById(id){['tComment','tOrder','tAnalysis'].forEach(function(t){document.getElementById(t).style.display=t===id?'block':'none';});}
+function mTabById(id){['tComment','tNoteDay','tOrder','tAnalysis'].forEach(function(t){var el=document.getElementById(t);if(el)el.style.display=t===id?'block':'none';});if(id==='tNoteDay')ndLoadContent();}
 
 var POINT_VAL={MNQ1:2,NQ1:20,MGC1:10,GC1:100,'XAU/USD':1,EURUSD:1,GBPUSD:1,USDJPY:0.01,BTCUSD:1};
 var S_result='BE';
@@ -2265,6 +2361,7 @@ function toggleOF(){if(_isReadOnly){showToast('🔒 โหมดดูเท่�
     document.getElementById('oRisk').value='';
     document.getElementById('oLots').value='';
     document.getElementById('oComm').value='';
+    document.getElementById('oFees').value='';
     document.getElementById('oClose').value='';
     document.getElementById('oPnl').value='';
     document.getElementById('oMaxRR').value='';
@@ -2328,13 +2425,13 @@ function calcPnl(){
     var pv=POINT_VAL[asset]||1;
     var dir=(S.side==='Long')?1:-1;
     var refPrice=cl||0;
-    // If no close price but TP exists and result is Win, use TP; if SL and Loss, use SL
     if(!refPrice&&tp&&S_result==='Win') refPrice=tp;
     if(!refPrice&&sl&&S_result==='Loss') refPrice=sl;
     if(refPrice){
       var grossPnl=(refPrice-en)*lots*pv*dir;
       var comm=parseFloat(document.getElementById('oComm').value)||0;
-      var pnl=grossPnl-comm;
+      var fees=parseFloat(document.getElementById('oFees').value)||0;
+      var pnl=grossPnl-comm-fees;
       document.getElementById('oPnl').value=pnl.toFixed(2);
       if(cl) updateResult();
     }
@@ -2352,11 +2449,17 @@ function calcTimeInPos(){
 function calcAll(){
   var asset=document.getElementById('oAsset').value;
   var lots=parseFloat(document.getElementById('oLots').value)||0;
+  // Fees = Exchange fee per lot (round trip)
+  var feeRate=FEES[asset]||0;
+  var fees=(lots*feeRate).toFixed(2);
+  document.getElementById('oFees').value=fees;
+  if(document.getElementById('cFees')) document.getElementById('cFees').textContent='$'+fees;
+  // Commission = Topstep platform fee per round trip
   var rate=COMM[asset]||0,comm=(lots*rate).toFixed(2);
   document.getElementById('oComm').value=comm;
-  document.getElementById('cComm').textContent='$'+comm;
+  if(document.getElementById('cComm')) document.getElementById('cComm').textContent='$'+comm;
   var en=parseFloat(document.getElementById('oEntry').value)||0,sl=parseFloat(document.getElementById('oSL').value)||0,tp=parseFloat(document.getElementById('oTP').value)||0;
-  // Show SL Point in ticks/points (fix 5: NQ/MNQ 1 point = 0.25)
+  // Show SL Point in ticks/points
   var slPtEl=document.getElementById('oSLPoint');
   if(slPtEl&&en&&sl){
     var slDist=Math.abs(en-sl);
@@ -2375,7 +2478,6 @@ function calcAll(){
     document.getElementById('cPos').textContent=lots?'$'+actualRisk.toFixed(2):'-';
     document.getElementById('cRR').textContent=rr;
     bar.style.display='block';
-    // Risk warning — red on Risk field + warn bar (items 6)
     var maxRisk=parseFloat(document.getElementById('oRisk').value)||0;
     var warn=document.getElementById('riskWarnBar');
     var riskInp=document.getElementById('oRisk');
@@ -2412,6 +2514,7 @@ function addTrade(){if(_isReadOnly){showToast('🔒 โหมดดูเท่�
     tp:document.getElementById('oTP').value,
     sl:document.getElementById('oSL').value,
     pnl:document.getElementById('oPnl').value||'0',
+    fees:document.getElementById('oFees').value||'0',
     commission:document.getElementById('oComm').value||'0',
     result:S_result,
     risk:document.getElementById('oRisk').value,
@@ -2434,14 +2537,108 @@ function addTrade(){if(_isReadOnly){showToast('🔒 โหมดดูเท่�
     discipline:parseInt(document.getElementById('oDiscSlider').value)||5,
     id:Date.now()
   };
-  S.mTrades.push(trade);
-  renderTT();
-  document.getElementById('orderForm').style.display='none';
-  S.trades[S.mKey]=S.mTrades;
-  persistPort();
-  updateStats();renderCal();updateRecent();renderTodayOrders();
-  if(S.scriptUrl) sendSheet('saveTrade',Object.assign({date:S.mKey},trade));
-  showToast('✅ เพิ่มออเดอร์แล้ว','success');
+  showTradeConfirm(trade, function(){
+    S.mTrades.push(trade);
+    renderTT();
+    document.getElementById('orderForm').style.display='none';
+    S.trades[S.mKey]=S.mTrades;
+    persistPort();
+    updateStats();renderCal();updateRecent();renderTodayOrders();
+    if(S.scriptUrl) sendSheet('saveTrade',Object.assign({date:S.mKey},trade));
+    showToast('✅ เพิ่มออเดอร์แล้ว','success');
+  });
+}
+
+function showTradeConfirm(t, onConfirm){
+  var existing=document.getElementById('_tradeConfirmModal');if(existing)existing.remove();
+  var pnl=parseFloat(t.pnl)||0;
+  var fees=parseFloat(t.fees)||0;
+  var comm=parseFloat(t.commission)||0;
+  var pnlColor=pnl>0?'var(--green)':pnl<0?'var(--red)':'var(--text-muted)';
+  var resultIcon=t.result==='Win'?'✅ Win':t.result==='Loss'?'❌ Loss':'〰️ BE';
+  var sideColor=t.side==='Long'?'var(--green)':'var(--red)';
+  var sideArrow=t.side==='Long'?'↑':'↓';
+
+  function row(label,val,valStyle){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">'
+      +'<span style="font-size:11px;color:var(--text-muted);">'+label+'</span>'
+      +'<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);'+(valStyle||'color:var(--text-primary)')+'">'+val+'</span>'
+      +'</div>';
+  }
+  function rowOptional(label,val,valStyle){
+    if(!val) return '';
+    return row(label,val,valStyle);
+  }
+
+  var entryTimeStr='';
+  if(t.entryDate){var d=new Date(t.entryDate);if(!isNaN(d))entryTimeStr=d.toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'});}
+  var closeTimeStr='';
+  if(t.closeDate){var d2=new Date(t.closeDate);if(!isNaN(d2))closeTimeStr=d2.toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'});}
+
+  var html='';
+  // Header — asset + side + result badge
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+    +'<div style="display:flex;align-items:center;gap:8px;">'
+    +'<span style="font-size:16px;font-weight:700;font-family:var(--font-mono);">'+escHtml(t.asset)+'</span>'
+    +'<span style="font-size:12px;font-weight:600;color:'+sideColor+';">'+sideArrow+' '+t.side+'</span>'
+    +(t.setupClass?'<span style="font-size:10px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:1px 6px;">'+escHtml(t.setupClass)+'</span>':'')
+    +'</div>'
+    +'<span style="font-size:12px;font-weight:700;">'+resultIcon+'</span>'
+    +'</div>';
+
+  // Main grid
+  html+='<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 12px;margin-bottom:10px;">';
+  html+=row('Lots',t.lots||'-');
+  html+=row('Entry',t.entry||'-');
+  if(t.close) html+=row('Close',t.close);
+  if(t.tp) html+=row('TP',t.tp,'color:var(--green)');
+  if(t.sl) html+=row('SL',t.sl,'color:var(--red)');
+  if(entryTimeStr) html+=row('เวลาเข้า',entryTimeStr);
+  if(closeTimeStr) html+=row('เวลาปิด',closeTimeStr);
+  if(t.timeInPos) html+=row('เวลาถือ',t.timeInPos);
+  html+='</div>';
+
+  // P&L summary box
+  html+='<div style="background:'+(pnl>0?'var(--green-dim)':pnl<0?'var(--red-dim)':'var(--bg-secondary)')+';border:1px solid '+(pnl>0?'rgba(46,204,138,.3)':pnl<0?'rgba(255,77,106,.3)':'var(--border)')+';border-radius:8px;padding:10px 12px;margin-bottom:10px;">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+    +'<span style="font-size:11px;color:var(--text-muted);">Net P&L</span>'
+    +'<span style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:'+pnlColor+';">'+(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2)+'</span>'
+    +'</div>';
+  html+='<div style="display:flex;gap:12px;">';
+  html+='<div style="font-size:10px;color:var(--text-muted);">Fees: <span style="color:var(--amber);font-family:var(--font-mono);">$'+fees.toFixed(2)+'</span></div>';
+  html+='<div style="font-size:10px;color:var(--text-muted);">Comm: <span style="color:var(--amber);font-family:var(--font-mono);">$'+comm.toFixed(2)+'</span></div>';
+  if(t.maxRR) html+='<div style="font-size:10px;color:var(--text-muted);">MaxRR: <span style="color:var(--accent);font-family:var(--font-mono);">'+t.maxRR+'R</span></div>';
+  html+='</div></div>';
+
+  // Optional fields
+  var optHtml='';
+  if(t.sessions) optHtml+='<div style="font-size:10px;margin-bottom:4px;"><span style="color:var(--text-muted);">Session: </span><span style="color:var(--accent);">'+escHtml(t.sessions)+'</span></div>';
+  if(t.trend||t.zone||t.confirm) optHtml+='<div style="font-size:10px;margin-bottom:4px;"><span style="color:var(--text-muted);">Zone: </span>'+(t.trend?'<span style="color:var(--text-secondary);">'+escHtml(t.trend)+'</span> ':'')+(t.zone?'<span style="color:var(--text-secondary);">'+escHtml(t.zone)+'</span> ':'')+(t.confirm?'<span style="color:var(--text-secondary);">'+escHtml(t.confirm)+'</span>':'')+'</div>';
+  if(t.tf||t.mode||t.candle) optHtml+='<div style="font-size:10px;margin-bottom:4px;"><span style="color:var(--text-muted);">Setup: </span>'+(t.tf?escHtml(t.tf)+' ':'')+(t.candle?escHtml(t.candle)+' ':'')+(t.mode?escHtml(t.mode):'')+'</div>';
+  if(t.emotion) optHtml+='<div style="font-size:10px;margin-bottom:4px;"><span style="color:var(--text-muted);">Emotion: </span><span style="color:var(--text-secondary);">'+t.emotion+'/10</span>  <span style="color:var(--text-muted);">Discipline: </span><span style="color:var(--text-secondary);">'+t.discipline+'/10</span></div>';
+  if(t.note) optHtml+='<div style="font-size:10px;margin-bottom:4px;"><span style="color:var(--text-muted);">Note: </span><span style="color:var(--text-secondary);font-style:italic;">'+escHtml(t.note.substring(0,80))+(t.note.length>80?'…':'')+'</span></div>';
+  if(optHtml) html+='<div style="padding:6px 0;border-top:1px solid var(--border);margin-bottom:10px;">'+optHtml+'</div>';
+
+  // Buttons
+  html+='<div style="display:flex;gap:8px;">'
+    +'<button id="_tcConfirmBtn" style="flex:1;background:var(--accent);border:none;color:#fff;padding:9px 0;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-main);transition:background .15s;" onmouseover="this.style.background=\'var(--accent-hover)\'" onmouseout="this.style.background=\'var(--accent)\'">✅ ยืนยัน Add Trade</button>'
+    +'<button onclick="document.getElementById(\'_tradeConfirmModal\').remove()" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);padding:9px 16px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-family:var(--font-main);">แก้ไข</button>'
+    +'</div>';
+
+  var modal=document.createElement('div');
+  modal.id='_tradeConfirmModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9990;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;width:100%;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.8);max-height:90vh;overflow-y:auto;">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;">📋 สรุปออเดอร์ก่อนบันทึก</div>'
+    +html
+    +'</div>';
+  document.body.appendChild(modal);
+
+  document.getElementById('_tcConfirmBtn').onclick=function(){
+    modal.remove();
+    onConfirm();
+  };
+  modal.addEventListener('mousedown',function(e){if(e.target===modal)modal.remove();});
 }
 
 // Auto-detect session from entry datetime
@@ -2603,9 +2800,7 @@ function confirmMoveDate(i){
   updateStats();renderCal();updateRecent();renderTodayOrders();
   // Sync to sheet if connected
   if(S.scriptUrl){
-    sendSheet('saveTrade',Object.assign({date:newDate},trade));
     if(trade.id) sendSheet('deleteTrade',{id:trade.id,date:oldKey,portfolio:S.currentPortfolio});
-    // update id so sheet knows this is the moved version
     trade.id=Date.now();
     sendSheet('saveTrade',Object.assign({date:newDate},trade));
   }
@@ -2626,6 +2821,7 @@ function editTr(i){if(_isReadOnly){showToast('🔒 โหมดดูเท่�
   document.getElementById('oClose').value=t.close||'';
   document.getElementById('oPnl').value=t.pnl||'0';
   document.getElementById('oRisk').value=t.risk||'';
+  document.getElementById('oFees').value=t.fees||'0';
   document.getElementById('oComm').value=t.commission||'';
   document.getElementById('oEntryDate').value=t.entryDate||'';
   document.getElementById('oCloseDate').value=t.closeDate||'';
@@ -2669,6 +2865,7 @@ function updateTrade(){if(_isReadOnly){showToast('🔒 โหมดดูเท�
     tp:document.getElementById('oTP').value,
     sl:document.getElementById('oSL').value,
     pnl:document.getElementById('oPnl').value||'0',
+    fees:document.getElementById('oFees').value||'0',
     commission:document.getElementById('oComm').value||'0',
     result:S_result,
     risk:document.getElementById('oRisk').value,
@@ -3156,6 +3353,8 @@ function saveAPI(){
   localStorage.setItem('tj_p',S.prov);
   localStorage.setItem('tj_pb',S.provBackup||'');
   updateBadge();closeM('mAPI');showToast('🔑 บันทึก API Key แล้ว (Primary:'+S.prov+' | Backup:'+(S.provBackup||'-')+')','success');
+  // Log provider/model selection to Sheet (no API keys sent)
+  if(S.scriptUrl) sendSheet('saveSettings',{key:'provider',value:'primary='+S.prov+' backup='+(S.provBackup||'-')+' models='+JSON.stringify({ant:S.keys['mAnt'],oai:S.keys['mOAI'],gem:S.keys['mGem'],groq:S.keys['mGroq']})});
 }
 // ─── tab map: ตรวจ tab ที่เปิดอยู่ → provider id
 var _TAB_MAP={atAnt:'anthropic',atOAI:'openai',atGem:'gemini',atGroq:'groq',atOlla:'ollama'};
@@ -3224,7 +3423,7 @@ function testSheet(){var url=document.getElementById('sheetUrl').value.trim();if
 function setConn(ok){var d=document.getElementById('sDot'),t=document.getElementById('sTxt');if(ok){d.classList.add('connected');t.textContent='Connected';t.style.color='var(--green)';loadAssetsFromSheet();}else{d.classList.remove('connected');t.textContent='Offline';t.style.color='var(--text-muted)';}}
 function sendSheet(action,data){
   if(!S.scriptUrl)return;
-  var icons={saveTrade:'📊',saveSession:'📝',deleteTrade:'🗑',deleteDay:'🗑',saveAssets:'🗂️',deletePortfolio:'🗑'};
+  var icons={saveTrade:'📊',saveSession:'📝',deleteTrade:'🗑',deleteDay:'🗑',saveAssets:'🗂️',deletePortfolio:'🗑',saveSettings:'⚙️',batchSaveTrades:'📥'};
   var payload=Object.assign({action:action, portfolio:S.currentPortfolio}, data);
   fetch(S.scriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(){showToast((icons[action]||'📊')+' Sheet: '+action+' OK','success');})
@@ -3449,6 +3648,7 @@ function loadCustomSessions(){
 }
 function saveCustomSessions(){
   localStorage.setItem('tj_custom_sess',JSON.stringify(_customSessions));
+  if(S.scriptUrl) sendSheet('saveSettings',{key:'custom_sessions',value:_customSessions.map(function(s){return s.label+(s.time?' ('+s.time+')':'');}).join(', ')});
 }
 var _customSessions=loadCustomSessions()||DEFAULT_SESSIONS.map(function(s){return Object.assign({},s);});
 var _sessEditMode=false;
@@ -3533,7 +3733,7 @@ function renderSessRow(rowId, isOrder){
     var inEditMode=isOrder?_orderSessEditMode:_sessEditMode;
     if(inEditMode){
       handle.style.display='inline';
-      if(!isOrder){editBtn.style.display='inline-flex';}
+      editBtn.style.display='inline-flex';
       delBtn.style.display='inline-block';
     }
 
@@ -3565,7 +3765,7 @@ function renderSessRow(rowId, isOrder){
     });
 
     wrap.appendChild(handle);wrap.appendChild(tag);
-    if(!isOrder){wrap.appendChild(editBtn);wrap.appendChild(delBtn);}
+    wrap.appendChild(editBtn);wrap.appendChild(delBtn);
     row.appendChild(wrap);
   });
 }
@@ -4309,6 +4509,10 @@ function parseTopstepCSV(text){
     var entryPrice=col(parts,'EntryPrice');
     // Normalize contract name: remove suffix like M6 → MNQM6 → MNQ1
     var asset=contractName.replace(/M\d+$/,'1');
+    // Commission = Topstep platform fee per round-trip (from COMM table)
+    var lots=parseFloat(col(parts,'Size')||'1')||1;
+    var tsCommRate=COMM[asset]||0;
+    var tsComm=(lots*tsCommRate).toFixed(2);
     var trade={
       asset:asset,
       side:col(parts,'Type')||'Long',
@@ -4318,7 +4522,8 @@ function parseTopstepCSV(text){
       tp: netPnl>=0 ? (exitPrice?parseFloat(exitPrice).toFixed(2):'') : '',
       sl: netPnl<0  ? (exitPrice?parseFloat(exitPrice).toFixed(2):'') : '',
       pnl:netPnl.toFixed(2),
-      commission:fees.toFixed(2),
+      fees:fees.toFixed(2),
+      commission:tsComm,
       result:netPnl>0?'Win':netPnl<0?'Loss':'BE',
       entryDate:enteredAt,
       closeDate:exitedAt,
@@ -4332,10 +4537,11 @@ function parseTopstepCSV(text){
     var existing=null;
     for(var j=0;j<_topstepData.length;j++){if(_topstepData[j]._mergeKey===mergeKey){existing=_topstepData[j];break;}}
     if(existing){
-      // รวม lots, pnl, commission; ใช้ closeDate ล่าสุด
+      // รวม lots, pnl, fees, commission; ใช้ closeDate ล่าสุด
       existing.lots=(parseFloat(existing.lots||0)+parseFloat(trade.lots||0)).toString();
       existing.pnl=(parseFloat(existing.pnl)+parseFloat(trade.pnl)).toFixed(2);
-      existing.commission=(parseFloat(existing.commission)+parseFloat(trade.commission)).toFixed(2);
+      existing.fees=(parseFloat(existing.fees||0)+parseFloat(trade.fees||0)).toFixed(2);
+      existing.commission=(parseFloat(existing.commission||0)+parseFloat(trade.commission||0)).toFixed(2);
       // ใช้ exitedAt ที่ช้ากว่า
       if(trade.closeDate&&(!existing.closeDate||trade.closeDate>existing.closeDate)) existing.closeDate=trade.closeDate;
       // recalc result
@@ -4442,6 +4648,118 @@ function showConfirm(msg, onOk){
   };
   modal.addEventListener('mousedown',function(e){if(e.target===modal)modal.remove();});
 }
+
+// ── NOTE OF THE DAY ──────────────────────────────────────────
+function ndStorageKey(){ return 'tj_noteday_'+S.currentPortfolio+'_'+S.mKey; }
+
+function ndLoadContent(){
+  var editor=document.getElementById('noteDayEditor');
+  if(!editor) return;
+  editor.setAttribute('data-placeholder','เขียนบันทึกประจำวัน... (รองรับรูปภาพ drag & drop หรือ Ctrl+V)');
+  var saved=localStorage.getItem(ndStorageKey());
+  editor.innerHTML = saved || '';
+  // Attach zoom listener to any existing images
+  ndBindImgZoom(editor);
+}
+
+function ndSave(){
+  var editor=document.getElementById('noteDayEditor');
+  if(!editor) return;
+  localStorage.setItem(ndStorageKey(), editor.innerHTML);
+  showToast('📝 บันทึก Note of Day แล้ว','success');
+}
+
+function ndClear(){
+  showConfirm('ล้าง Note of Day วันนี้ทั้งหมดใช่ไหม?', function(){
+    var editor=document.getElementById('noteDayEditor');
+    if(editor) editor.innerHTML='';
+    localStorage.removeItem(ndStorageKey());
+    showToast('🗑 ล้าง Note of Day แล้ว','success');
+  });
+}
+
+function ndExec(cmd, val){
+  document.getElementById('noteDayEditor').focus();
+  document.execCommand(cmd, false, val||null);
+}
+
+function ndInsertImgClick(){ document.getElementById('ndImgFile').click(); }
+
+function ndInsertImgFile(e){
+  var file=e.target.files[0];
+  if(file&&file.type.startsWith('image/')) ndInsertImgFromFile(file);
+  e.target.value='';
+}
+
+function ndInsertImgFromFile(file){
+  var r=new FileReader();
+  r.onload=function(ev){
+    ndInsertImgSrc(ev.target.result);
+  };
+  r.readAsDataURL(file);
+}
+
+function ndInsertImgSrc(src){
+  var editor=document.getElementById('noteDayEditor');
+  editor.focus();
+  var img=document.createElement('img');
+  img.src=src;
+  img.style.cssText='max-width:100%;height:auto;border-radius:6px;margin:4px 0;display:block;cursor:zoom-in;';
+  img.onclick=function(){ ndOpenOverlay(this.src); };
+  var sel=window.getSelection();
+  if(sel&&sel.rangeCount){
+    var range=sel.getRangeAt(0);
+    range.collapse(false);
+    range.insertNode(img);
+    range.setStartAfter(img);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    editor.appendChild(img);
+  }
+}
+
+function ndBindImgZoom(editor){
+  editor.querySelectorAll('img').forEach(function(img){
+    img.style.cursor='zoom-in';
+    img.onclick=function(){ ndOpenOverlay(this.src); };
+  });
+}
+
+function ndOnDrop(e){
+  e.preventDefault();
+  var file=e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')) ndInsertImgFromFile(file);
+}
+
+function ndOnPaste(e){
+  var items=e.clipboardData&&e.clipboardData.items;
+  if(!items) return;
+  for(var i=0;i<items.length;i++){
+    if(items[i].type.startsWith('image/')){
+      e.preventDefault();
+      var file=items[i].getAsFile();
+      if(file) ndInsertImgFromFile(file);
+      return;
+    }
+  }
+}
+
+function ndOpenOverlay(src){
+  var ov=document.getElementById('ndImgOverlay');
+  var img=document.getElementById('ndImgOverlayImg');
+  if(!ov||!img) return;
+  img.src=src;
+  ov.style.display='flex';
+  document.body.style.overflow='hidden';
+}
+
+function ndCloseOverlay(){
+  var ov=document.getElementById('ndImgOverlay');
+  if(ov) ov.style.display='none';
+  document.body.style.overflow='';
+}
+// ─────────────────────────────────────────────────────────────
 
 init();
 </script>
