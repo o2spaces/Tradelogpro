@@ -1692,7 +1692,7 @@ function clearLog(){
 <script>
 // Fees = Exchange/broker fee per lot (round trip)
 var FEES={NQ1:2.80,MNQ1:0.74,GC1:3.24,MGC1:1.24,'XAU/USD':0,EURUSD:0,GBPUSD:0,USDJPY:0,BTCUSD:0};
-// Commission = Topstep platform fee per round trip: Mini=$1.00/lot, Micro=$0.50/lot
+// Commission = Topstep platform fee per entry (round trip, fixed per trade)
 var COMM={NQ1:1.00,GC1:1.00,MNQ1:0.50,MGC1:0.50,'XAU/USD':0,EURUSD:0,GBPUSD:0,USDJPY:0,BTCUSD:0};
 // Point/tick size per asset (for SL distance display in points, fix 5)
 var TICK_SIZE={MNQ1:0.25,NQ1:0.25,MGC1:0.1,GC1:0.1,'XAU/USD':0.01,EURUSD:0.00001,GBPUSD:0.00001,USDJPY:0.001,BTCUSD:1};
@@ -1967,7 +1967,7 @@ function openFeesConfig(){
       +'<thead><tr style="border-bottom:1px solid var(--border);">'
       +'<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;">ASSET</th>'
       +'<th style="text-align:right;padding:5px 6px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;">FEES ($/lot)</th>'
-      +'<th style="text-align:right;padding:5px 6px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;">COMM ($/lot)</th>'
+      +'<th style="text-align:right;padding:5px 6px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.4px;">COMM ($/entry)</th>'
       +'</tr></thead><tbody>'+rows+'</tbody></table>';
   }
 
@@ -1976,10 +1976,11 @@ function openFeesConfig(){
 
   modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;min-width:360px;max-width:440px;">'
     +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">💰 Fees &amp; Commission Config</div>'
-    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">ตั้งค่า Fees และ Commission ต่อ lot แยกตาม กองทุน/บัญชี</div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">ตั้งค่า Fees ($/lot) และ Commission ($/entry) แยกตาม กองทุน/บัญชี</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">'
     +'<label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">กองทุน / บัญชี:</label>'
     +'<select id="fcFundSel" class="form-input" style="flex:1;" onchange="fcReload(this.value)">'+fundOpts+'</select>'
+    +'<button onclick="openManageFunds()" title="จัดการกองทุน/บัญชี" style="flex-shrink:0;background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:var(--radius-sm);padding:5px 9px;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.color=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--text-secondary)\'">⚙️ จัดการ</button>'
     +'</div>'
     +'<div id="fcTableWrap">'+buildTable(currentFund)+'</div>'
     +'<div style="font-size:10px;color:var(--text-muted);margin:10px 0 14px;">💡 ค่านี้จะถูกใช้คำนวณ Fees/Comm อัตโนมัติเมื่อกรอก Entry/TP/SL ในพอร์ตที่ใช้กองทุนนี้</div>'
@@ -2019,6 +2020,129 @@ function fcSave(){
   saveFCConfig(fund,cfg);
   showToast('✅ บันทึก Fees & Commission สำหรับ "'+fund+'" แล้ว','success');
 }
+
+// ── FUND LIST MANAGEMENT + LOG ────────────────────────────────
+function getFundLog(){
+  try{ return JSON.parse(localStorage.getItem('tj_fund_log')||'[]'); }catch(e){ return []; }
+}
+function pushFundLog(action, fundName){
+  var log=getFundLog();
+  log.unshift({ts:new Date().toISOString(), action:action, fund:fundName});
+  if(log.length>200) log=log.slice(0,200);
+  localStorage.setItem('tj_fund_log', JSON.stringify(log));
+  if(S.scriptUrl) sendSheet('saveSettings',{key:'fund_'+action, value:'fund='+fundName+' ts='+new Date().toISOString()});
+}
+
+function openManageFunds(){
+  var existing=document.getElementById('_manageFundsModal');
+  if(existing) existing.remove();
+  var modal=document.createElement('div');
+  modal.id='_manageFundsModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:700;display:flex;align-items:center;justify-content:center;';
+  document.body.appendChild(modal);
+  renderManageFundsContent(modal);
+  modal.addEventListener('mousedown',function(e){ if(e.target===modal) modal.remove(); });
+}
+
+function renderManageFundsContent(modal){
+  var list=getFundList();
+  var log=getFundLog();
+  var fundRows=list.map(function(f){
+    return '<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px;">'
+      +'<span style="flex:1;font-size:12px;font-family:var(--font-mono);color:var(--text-primary);">'+escHtml(f)+'</span>'
+      +'<button onclick="deleteFundItem(\''+escHtml(f.replace(/'/g,"\\'"))+'\',this)" style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'0.7\'" onmouseout="this.style.opacity=\'1\'">🗑 ลบ</button>'
+      +'</div>';
+  }).join('') || '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:8px;">ไม่มีกองทุน/บัญชี</div>';
+
+  var logRows=log.slice(0,12).map(function(l){
+    var dt=new Date(l.ts);
+    var dateStr=dt.toLocaleDateString('th-TH',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    var isAdd=l.action==='add';
+    return '<tr>'
+      +'<td style="padding:3px 6px;font-size:10px;color:var(--text-muted);white-space:nowrap;font-family:var(--font-mono);">'+dateStr+'</td>'
+      +'<td style="padding:3px 6px;"><span style="font-size:10px;font-weight:600;color:'+(isAdd?'var(--green)':'var(--red)')+';">'+(isAdd?'➕ เพิ่ม':'🗑 ลบ')+'</span></td>'
+      +'<td style="padding:3px 6px;font-size:11px;font-family:var(--font-mono);color:var(--text-primary);">'+escHtml(l.fund)+'</td>'
+      +'</tr>';
+  }).join('') || '<tr><td colspan="3" style="padding:8px;text-align:center;color:var(--text-muted);font-size:11px;">ยังไม่มี Log</td></tr>';
+
+  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;min-width:340px;max-width:420px;max-height:90vh;overflow-y:auto;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
+    +'<div style="font-size:13px;font-weight:600;">⚙️ จัดการกองทุน / บัญชี</div>'
+    +'<button onclick="document.getElementById(\'_manageFundsModal\').remove()" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;line-height:1;padding:2px 4px;" onmouseover="this.style.color=\'var(--text-primary)\'" onmouseout="this.style.color=\'var(--text-muted)\'">✕</button>'
+    +'</div>'
+    // รายการปัจจุบัน
+    +'<div style="font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">รายการกองทุน/บัญชี</div>'
+    +'<div id="fundListItems">'+fundRows+'</div>'
+    // เพิ่มใหม่
+    +'<div style="display:flex;gap:6px;margin-top:10px;margin-bottom:16px;">'
+    +'<input id="newFundInput" class="form-input" placeholder="ชื่อกองทุน/บัญชีใหม่" style="flex:1;" onkeydown="if(event.key===\'Enter\')addFundItem()">'
+    +'<button onclick="addFundItem()" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 13px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s;" onmouseover="this.style.background=\'var(--accent-hover)\'" onmouseout="this.style.background=\'var(--accent)\'">+ เพิ่ม</button>'
+    +'</div>'
+    // Log
+    +'<div style="border-top:1px solid var(--border);padding-top:12px;">'
+    +'<div style="font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">📋 Log ล่าสุด</div>'
+    +'<div style="overflow-x:auto;">'
+    +'<table style="width:100%;border-collapse:collapse;" id="fundLogTable"><tbody>'+logRows+'</tbody></table>'
+    +'</div></div>'
+    +'</div>';
+}
+
+function addFundItem(){
+  var inp=document.getElementById('newFundInput');
+  if(!inp) return;
+  var val=(inp.value||'').trim();
+  if(!val){ showToast('กรุณาใส่ชื่อกองทุน/บัญชี','error'); return; }
+  var list=getFundList();
+  if(list.indexOf(val)!==-1){ showToast('"'+val+'" มีอยู่แล้ว','error'); return; }
+  list.push(val);
+  saveFundList(list);
+  pushFundLog('add', val);
+  inp.value='';
+  // refresh modal content
+  var modal=document.getElementById('_manageFundsModal');
+  if(modal) renderManageFundsContent(modal);
+  // refresh Fees modal dropdown if open
+  var fcSel=document.getElementById('fcFundSel');
+  if(fcSel){
+    var cur=fcSel.value;
+    var fundList2=getFundList();
+    var currentFund2=getCurrentFund();
+    var opts=fundList2.map(function(f){return '<option value="'+escHtml(f)+'"'+(f===cur?' selected':'')+'>'+escHtml(f)+'</option>';}).join('');
+    opts+='<option value="default"'+(cur==='default'?' selected':'')+'>default</option>';
+    fcSel.innerHTML=opts;
+  }
+  showToast('✅ เพิ่มกองทุน "'+val+'" แล้ว','success');
+}
+
+function deleteFundItem(fundName, btn){
+  // ตรวจสอบว่ากองทุนนี้ถูกใช้งานใน portfolio อยู่หรือไม่
+  var usedIn=Object.values(S.portfolios).filter(function(p){ return p.fund===fundName; }).map(function(p){ return p.name; });
+  var confirmMsg='ลบกองทุน "'+fundName+'" ออกจากรายการ?';
+  if(usedIn.length>0) confirmMsg+='\n⚠️ ยังถูกใช้ในพอร์ต: '+usedIn.join(', ')+'\n(พอร์ตเหล่านั้นจะยังคงอยู่ แค่ชื่อกองทุนไม่อยู่ในรายการ)';
+  if(!confirm(confirmMsg)) return;
+  var list=getFundList();
+  var idx=list.indexOf(fundName);
+  if(idx===-1){ showToast('ไม่พบกองทุนนี้','error'); return; }
+  list.splice(idx,1);
+  saveFundList(list);
+  pushFundLog('delete', fundName);
+  // refresh modal
+  var modal=document.getElementById('_manageFundsModal');
+  if(modal) renderManageFundsContent(modal);
+  // refresh Fees modal dropdown if open
+  var fcSel=document.getElementById('fcFundSel');
+  if(fcSel){
+    var cur=fcSel.value;
+    var fundList2=getFundList();
+    var newSel=(cur===fundName)?(fundList2[0]||'default'):cur;
+    var opts=fundList2.map(function(f){return '<option value="'+escHtml(f)+'"'+(f===newSel?' selected':'')+'>'+escHtml(f)+'</option>';}).join('');
+    opts+='<option value="default"'+(newSel==='default'?' selected':'')+'>default</option>';
+    fcSel.innerHTML=opts;
+    if(cur===fundName) fcReload(newSel);
+  }
+  showToast('🗑 ลบกองทุน "'+fundName+'" แล้ว','success');
+}
+// ─────────────────────────────────────────────────────────────
 
 function getFeesForAsset(asset){
   var fund=getCurrentFund();
@@ -2667,8 +2791,8 @@ function calcAll(){
   var fees=(lots*feeRate).toFixed(2);
   document.getElementById('oFees').value=fees;
   if(document.getElementById('cFees')) document.getElementById('cFees').textContent='$'+fees;
-  // Commission = platform fee per round trip (from fund config)
-  var rate=getCommForAsset(asset),comm=(lots*rate).toFixed(2);
+  // Commission = platform fee per entry/round trip (fixed per trade, not per lot)
+  var rate=getCommForAsset(asset),comm=(rate).toFixed(2);
   document.getElementById('oComm').value=comm;
   if(document.getElementById('cComm')) document.getElementById('cComm').textContent='$'+comm;
   var en=parseFloat(document.getElementById('oEntry').value)||0,sl=parseFloat(document.getElementById('oSL').value)||0,tp=parseFloat(document.getElementById('oTP').value)||0;
