@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="Icon.png">
 <link rel="icon" type="image/png" sizes="16x16" href="Icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="Icon.png">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600&family=Kanit:wght@300;400;500;600&family=Prompt:wght@300;400;500;600&family=Mitr:wght@300;400;500&family=Noto+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=Pridi:wght@300;400;500&family=Charm:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg-primary:#0d0f14;--bg-secondary:#141720;--bg-card:#1a1e2a;--bg-input:#0f1117;--border:#2a2f3d;--border-hover:#3d4460;--text-primary:#e8eaf0;--text-secondary:#8b90a0;--text-muted:#555b70;--accent:#4f7aff;--accent-hover:#6b91ff;--accent-dim:rgba(79,122,255,.15);--green:#2ecc8a;--green-dim:rgba(46,204,138,.12);--red:#ff4d6a;--red-dim:rgba(255,77,106,.12);--amber:#f5a623;--amber-dim:rgba(245,166,35,.12);--purple:#a855f7;--teal:#22d3ee;--font-main:'Sora',sans-serif;--font-mono:'JetBrains Mono',monospace;--radius:10px;--radius-sm:6px;}
 [data-theme="light"]{--bg-primary:#f0f2f7;--bg-secondary:#e4e7f0;--bg-card:#fff;--bg-input:#f5f7fc;--border:#d0d5e8;--border-hover:#a0a8c8;--text-primary:#1a1e2a;--text-secondary:#4a5068;--text-muted:#8b90a0;--accent:#3b6aee;--accent-hover:#2a55dd;--accent-dim:rgba(59,106,238,.1);--green:#14a064;--green-dim:rgba(20,160,100,.1);--red:#c8283c;--red-dim:rgba(200,40,60,.1);}
@@ -175,6 +175,13 @@ body.modal-open #sidebarBtnRight {
 .nd-btn:hover{border-color:var(--accent);color:var(--accent);}
 #noteDayEditor img{max-width:100%;height:auto;border-radius:6px;margin:4px 0;cursor:zoom-in;display:block;}
 #noteDayEditor:empty:before{content:attr(data-placeholder);color:var(--text-muted);pointer-events:none;}
+#noteDayEditor ul,#noteDayEditor ol{padding-left:1.6em;margin:4px 0;}
+#noteDayEditor ul{list-style-type:disc;}
+#noteDayEditor ol{list-style-type:decimal;}
+#noteDayEditor li{margin:2px 0;}
+#noteDayEditor ul ul,#noteDayEditor ol ol,#noteDayEditor ul ol,#noteDayEditor ol ul{padding-left:1.4em;}
+/* ให้ text-align ทำงานใน li */
+#noteDayEditor li[style*="text-align"]{list-style-position:inside;padding-left:0;}
 .main{overflow-y:auto;padding:14px;transition:padding .25s;}
 .layout.left-collapsed .main{ padding-left:28px; }
 .layout.right-collapsed .main{ padding-right:28px; }
@@ -701,44 +708,98 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
 
     <!-- NOTE OF THE DAY TAB -->
     <div id="tNoteDay" style="display:none;">
-      <!-- Toolbar -->
-      <div id="noteDayToolbar" style="display:flex;flex-wrap:wrap;align-items:center;gap:3px;padding:5px 6px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm) var(--radius-sm) 0 0;margin-bottom:0;">
-        <!-- Font size -->
-        <select onchange="ndExec('fontSize',this.value);this.value=''" title="ขนาดตัวอักษร" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;font-size:10px;padding:2px 4px;cursor:pointer;height:24px;font-family:var(--font-main);">
-          <option value="">Size</option>
-          <option value="1">8px</option><option value="2">10px</option><option value="3">12px</option>
-          <option value="4">14px</option><option value="5">18px</option><option value="6">24px</option><option value="7">32px</option>
+      <!-- Toolbar Row 1: text formatting -->
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm) var(--radius-sm) 0 0;padding:5px 8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+        <!-- Font family -->
+        <select id="ndFontFamily" onchange="ndSetFontFamily(this.value)" title="เลือกฟอนต์"
+          style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;font-size:11px;padding:0 4px;height:26px;cursor:pointer;font-family:var(--font-main);min-width:110px;">
+          <option value="">ฟอนต์</option>
+          <optgroup label="── ฟอนต์ไทย ──">
+            <option value="'Sarabun',sans-serif" style="font-family:'Sarabun',sans-serif">Sarabun</option>
+            <option value="'Kanit',sans-serif" style="font-family:'Kanit',sans-serif">Kanit</option>
+            <option value="'Prompt',sans-serif" style="font-family:'Prompt',sans-serif">Prompt</option>
+            <option value="'Mitr',sans-serif" style="font-family:'Mitr',sans-serif">Mitr</option>
+            <option value="'Noto Sans Thai',sans-serif" style="font-family:'Noto Sans Thai',sans-serif">Noto Sans Thai</option>
+            <option value="'IBM Plex Sans Thai',sans-serif" style="font-family:'IBM Plex Sans Thai',sans-serif">IBM Plex Sans Thai</option>
+            <option value="'Pridi',serif" style="font-family:'Pridi',serif">Pridi (Serif)</option>
+            <option value="'Charm',cursive" style="font-family:'Charm',cursive">Charm (Handwriting)</option>
+          </optgroup>
+          <optgroup label="── ฟอนต์สากล ──">
+            <option value="'Sora',sans-serif" style="font-family:'Sora',sans-serif">Sora</option>
+            <option value="Arial,sans-serif" style="font-family:Arial,sans-serif">Arial</option>
+            <option value="Georgia,serif" style="font-family:Georgia,serif">Georgia</option>
+            <option value="'Courier New',monospace" style="font-family:'Courier New',monospace">Courier New</option>
+            <option value="'JetBrains Mono',monospace" style="font-family:'JetBrains Mono',monospace">JetBrains Mono</option>
+          </optgroup>
         </select>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
+        <!-- Font size -->
+        <select id="ndFontSize" onchange="ndSetFontSize(this.value)" title="ขนาดตัวอักษร"
+          style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;font-size:11px;padding:0 4px;height:26px;cursor:pointer;font-family:var(--font-main);min-width:64px;">
+          <option value="">ขนาด</option>
+          <option value="12px">12px</option><option value="14px">14px</option>
+          <option value="16px" selected>16px</option><option value="18px">18px</option>
+          <option value="22px">22px</option><option value="28px">28px</option><option value="36px">36px</option>
+        </select>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
         <!-- Bold/Italic/Underline/Strike -->
-        <button onclick="ndExec('bold')" title="Bold" class="nd-btn"><b>B</b></button>
-        <button onclick="ndExec('italic')" title="Italic" class="nd-btn"><i>I</i></button>
-        <button onclick="ndExec('underline')" title="Underline" class="nd-btn"><u>U</u></button>
-        <button onclick="ndExec('strikeThrough')" title="Strikethrough" class="nd-btn" style="text-decoration:line-through;">S</button>
-        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
-        <!-- Alignment -->
-        <button onclick="ndExec('justifyLeft')" title="Align Left" class="nd-btn">⬅</button>
-        <button onclick="ndExec('justifyCenter')" title="Center" class="nd-btn">↔</button>
-        <button onclick="ndExec('justifyRight')" title="Align Right" class="nd-btn">➡</button>
-        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
+        <button onmousedown="ndCmd(event,'bold')" title="Bold (Ctrl+B)" class="nd-btn" style="font-weight:700;min-width:26px;">B</button>
+        <button onmousedown="ndCmd(event,'italic')" title="Italic (Ctrl+I)" class="nd-btn" style="font-style:italic;min-width:26px;">I</button>
+        <button onmousedown="ndCmd(event,'underline')" title="Underline (Ctrl+U)" class="nd-btn" style="text-decoration:underline;min-width:26px;">U</button>
+        <button onmousedown="ndCmd(event,'strikeThrough')" title="Strikethrough" class="nd-btn" style="text-decoration:line-through;min-width:26px;">S</button>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
+        <!-- Alignment — ใช้ SVG แทน emoji -->
+        <button onmousedown="ndCmd(event,'justifyLeft')" title="ชิดซ้าย" class="nd-btn" style="min-width:26px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="1" width="14" height="2" rx="1"/><rect x="0" y="5" width="10" height="2" rx="1"/><rect x="0" y="9" width="14" height="2" rx="1"/><rect x="0" y="13" width="8" height="2" rx="1" style="display:none"/></svg>
+        </button>
+        <button onmousedown="ndCmd(event,'justifyCenter')" title="กึ่งกลาง" class="nd-btn" style="min-width:26px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="1" width="14" height="2" rx="1"/><rect x="2" y="5" width="10" height="2" rx="1"/><rect x="0" y="9" width="14" height="2" rx="1"/></svg>
+        </button>
+        <button onmousedown="ndCmd(event,'justifyRight')" title="ชิดขวา" class="nd-btn" style="min-width:26px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="1" width="14" height="2" rx="1"/><rect x="4" y="5" width="10" height="2" rx="1"/><rect x="0" y="9" width="14" height="2" rx="1"/></svg>
+        </button>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
         <!-- Lists -->
-        <button onclick="ndExec('insertUnorderedList')" title="Bullet List" class="nd-btn">• List</button>
-        <button onclick="ndExec('insertOrderedList')" title="Numbered List" class="nd-btn">1. List</button>
-        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
-        <!-- Text color -->
-        <label title="สีตัวอักษร" style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:10px;color:var(--text-secondary);">
-          A <input type="color" value="#e8eaf0" onchange="ndExec('foreColor',this.value)" style="width:18px;height:18px;padding:0;border:none;background:none;cursor:pointer;border-radius:3px;">
+        <button onmousedown="ndCmd(event,'insertUnorderedList')" title="Bullet list" class="nd-btn" style="gap:3px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><circle cx="1.5" cy="3" r="1.5"/><rect x="4" y="2" width="10" height="2" rx="1"/><circle cx="1.5" cy="7" r="1.5"/><rect x="4" y="6" width="10" height="2" rx="1"/><circle cx="1.5" cy="11" r="1.5"/><rect x="4" y="10" width="10" height="2" rx="1"/></svg>
+        </button>
+        <button onmousedown="ndCmd(event,'insertOrderedList')" title="Numbered list" class="nd-btn" style="font-size:10px;padding:0 5px;">1.</button>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
+        <!-- Color pickers -->
+        <label title="สีตัวอักษร" style="display:flex;align-items:center;gap:3px;cursor:pointer;height:26px;padding:0 5px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;transition:border-color .12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:11px;font-weight:700;color:var(--text-secondary);">A</span>
+          <input type="color" id="ndTextColor" value="#e8eaf0" onchange="ndExec('foreColor',this.value)" style="width:16px;height:16px;padding:0;border:none;background:none;cursor:pointer;border-radius:2px;">
         </label>
-        <!-- Highlight -->
-        <label title="ไฮไลท์" style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:10px;color:var(--text-secondary);">
-          🖊 <input type="color" value="#f5a623" onchange="ndExec('hiliteColor',this.value)" style="width:18px;height:18px;padding:0;border:none;background:none;cursor:pointer;border-radius:3px;">
+        <label title="ไฮไลท์พื้นหลัง" style="display:flex;align-items:center;gap:3px;cursor:pointer;height:26px;padding:0 5px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;transition:border-color .12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:11px;color:var(--text-secondary);">bg</span>
+          <input type="color" id="ndBgColor" value="#f5a623" onchange="ndExec('hiliteColor',this.value)" style="width:16px;height:16px;padding:0;border:none;background:none;cursor:pointer;border-radius:2px;">
         </label>
-        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
-        <!-- Image upload -->
-        <button onclick="ndInsertImgClick()" title="แทรกรูป" class="nd-btn">🖼 รูป</button>
+        <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
+        <!-- Emoji picker button -->
+        <button id="ndEmojiBtn" onmousedown="ndToggleEmoji(event)" title="แทรก Emoji" class="nd-btn" style="font-size:15px;min-width:32px;padding:0 6px;">😊</button>
+        <!-- Image -->
+        <button onmousedown="ndInsertImgClick(event)" title="แทรกรูปภาพ" class="nd-btn" style="font-size:12px;gap:3px;">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor"><rect x="0" y="0" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="4" cy="4" r="1.5"/><path d="M0 9 L4 5.5 L7 8 L9.5 5.5 L13 9 L13 13 L0 13 Z"/></svg>
+          รูป
+        </button>
         <input type="file" id="ndImgFile" accept="image/*" style="display:none;" onchange="ndInsertImgFile(event)">
+        <!-- Divider -->
+        <div style="flex:1;"></div>
         <!-- Clear -->
-        <button onclick="ndClear()" title="ล้างทั้งหมด" class="nd-btn" style="margin-left:auto;color:var(--red);border-color:rgba(255,77,106,.4);">✕ Clear</button>
+        <button onmousedown="ndClearClick(event)" title="ล้างทั้งหมด" class="nd-btn" style="color:var(--red);border-color:rgba(255,77,106,.3);font-size:11px;">✕ Clear</button>
       </div>
+
+      <!-- Emoji Panel (hidden by default) -->
+      <div id="ndEmojiPanel" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-top:none;padding:8px;position:relative;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
+          <input id="ndEmojiSearch" type="text" placeholder="🔍 ค้นหา emoji..." oninput="ndEmojiFilter(this.value)"
+            style="flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--text-primary);outline:none;min-width:120px;">
+          <button onmousedown="ndCloseEmoji(event)" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">ปิด</button>
+        </div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px;" id="ndEmojiCats"></div>
+        <div id="ndEmojiGrid" style="display:flex;flex-wrap:wrap;gap:2px;max-height:140px;overflow-y:auto;"></div>
+      </div>
+
       <!-- Editor -->
       <div id="noteDayEditor"
         contenteditable="true"
@@ -746,15 +807,20 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
         ondrop="ndOnDrop(event)"
         ondragover="event.preventDefault()"
         onpaste="ndOnPaste(event)"
-        style="min-height:260px;max-height:420px;overflow-y:auto;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);font-size:13px;line-height:1.65;color:var(--text-primary);outline:none;font-family:var(--font-main);"
+        onkeydown="ndOnKeyDown(event)"
+        data-placeholder="เขียนบันทึกประจำวัน... (รองรับ Drag &amp; Drop / Ctrl+V วางรูป)"
+        style="min-height:280px;max-height:400px;overflow-y:auto;padding:12px 14px;background:var(--bg-input);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);font-size:15px;line-height:1.7;color:var(--text-primary);outline:none;font-family:var(--font-main);word-break:break-word;"
       ></div>
+
       <!-- Image fullscreen overlay -->
-      <div id="ndImgOverlay" onclick="ndCloseOverlay()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
+      <div id="ndImgOverlay" onclick="ndCloseOverlay()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
         <img id="ndImgOverlayImg" style="max-width:95vw;max-height:92vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.8);object-fit:contain;">
-        <button onclick="ndCloseOverlay()" style="position:fixed;top:16px;right:20px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10000;">✕</button>
+        <button onclick="ndCloseOverlay()" style="position:fixed;top:16px;right:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10000;">✕</button>
       </div>
-      <!-- Save button -->
-      <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:7px;">
+
+      <!-- Footer buttons -->
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:7px;align-items:center;">
+        <span id="ndAutoSaveLabel" style="font-size:10px;color:var(--text-muted);margin-right:auto;"></span>
         <button class="btn-sm" onclick="ndLoadContent()">↺ โหลดใหม่</button>
         <button class="btn-primary" onclick="ndSave()">💾 บันทึก Note of Day</button>
       </div>
@@ -4650,91 +4716,213 @@ function showConfirm(msg, onOk){
 }
 
 // ── NOTE OF THE DAY ──────────────────────────────────────────
+var _ndAutoSaveTimer=null;
+var _ndEmojiOpen=false;
+var _ndEmojiCat=0;
+var _ndSavedRange=null;
+
+var ND_EMOJI={
+  'ใบหน้า':['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😋','😛','😝','😜','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','🤗','🤔','🤫','🤥','😶','😐','😑','😬','🙄','😯','😲','🥱','😴','😵','🤢','🤮','🤧','😷','🤒','🤕'],
+  'มือ&ร่างกาย':['👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','👋','🤚','🖐️','✋','🖖','👏','🙌','🤲','🙏','✍️','💪','🦾','💅','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','💕','💞','💓','💗','💖','💘','💝'],
+  'สัตว์':['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐴','🦄','🐝','🦋','🐌','🐞','🐢','🐍','🦎','🐙','🦑','🐡','🐠','🐟','🐬','🐳','🦈','🐊','🐘','🦒','🦘','🐃','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔'],
+  'อาหาร':['🍎','🍊','🍋','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥦','🥬','🥒','🌶️','🧄','🧅','🥕','🌽','🍠','🧆','🥚','🍳','🥘','🍲','🍱','🍙','🍚','🍛','🍜','🍝','🍣','🍤','🍥','🥟','🥠','🥡','🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🥧','🍫','🍬','🍭','🍮','🍯','☕','🍵','🧃','🥤','🧋','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾'],
+  'กิจกรรม':['⚽','🏀','🏈','⚾','🥎','🏐','🏉','🎾','🥏','🎳','🏏','🏑','🏒','🥍','🏓','🏸','🥊','🥋','🎯','🛹','🛷','⛸️','🥌','🎿','⛷️','🏂','🪂','🏋️','🤸','🏊','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🎮','🎲','🎭','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🎷','🎺','🎸','🪕','🎻','🪗'],
+  'เดินทาง':['🚗','🚕','🚙','🚌','🏎️','🚓','🚑','🚒','🚜','🏍️','🛵','🚲','✈️','🚀','🛸','🚁','⛵','🚢','🚂','🚇','🗺️','🧭','🌍','🌎','🌏','🏔️','⛰️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️','🏟️','🏛️','🏗️','🏘️','🏚️','🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🗼','🗽','⛪','🕌','🛕','🕍','⛩️','🗾','🎑','🏞️'],
+  'วัตถุ':['💡','🔦','🕯️','💰','💳','💎','⚖️','🔑','🗝️','🔒','🔓','🔨','🪓','⛏️','🔧','🪛','🔩','⚙️','🔗','🧲','📌','📍','✂️','📋','📄','📝','📖','📚','📒','📕','📗','📘','📙','📱','💻','🖥️','⌨️','🖱️','📷','📸','🎥','📺','📻','🔋','🔌','💡','✉️','📧','📦','📫','📬','📭','📮','✏️','✒️','🖊️','📁','📂','🗂️','🗑️','🗃️','📊','📈','📉','🗒️','🗓️','📅','📆','🗓️'],
+  'สัญลักษณ์':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💯','✅','❌','⭕','🛑','⛔','📛','🚫','❗','❕','❓','❔','‼️','⁉️','⚠️','🔰','♻️','💤','🔅','🔆','🔱','⚜️','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🔶','🔷','🔸','🔹','🔺','🔻','💠','🔘','🔲','🔳','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫'],
+  'ธรรมชาติ':['☀️','🌤️','⛅','☁️','🌧️','⛈️','🌩️','🌨️','❄️','🌪️','🌫️','🌬️','🌀','🌈','☔','⚡','🌊','🌋','🏔️','⛰️','🍀','🌿','🌱','🌲','🌳','🌴','🌵','🍁','🍂','🍃','🍄','🌾','💐','🌷','🌹','🥀','🌺','🌸','🌼','🌻','🌞','🌝','🌛','🌜','🌚','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌙','🌟','⭐','☄️','💥','🔥','💧','💦']
+};
+var ND_EMOJI_KEYS=Object.keys(ND_EMOJI);
+
 function ndStorageKey(){ return 'tj_noteday_'+S.currentPortfolio+'_'+S.mKey; }
 
 function ndLoadContent(){
   var editor=document.getElementById('noteDayEditor');
   if(!editor) return;
-  editor.setAttribute('data-placeholder','เขียนบันทึกประจำวัน... (รองรับรูปภาพ drag & drop หรือ Ctrl+V)');
   var saved=localStorage.getItem(ndStorageKey());
   editor.innerHTML = saved || '';
-  // Attach zoom listener to any existing images
   ndBindImgZoom(editor);
+  // reset emoji panel
+  ndCloseEmoji();
+  var lbl=document.getElementById('ndAutoSaveLabel');
+  if(lbl) lbl.textContent='';
+  // focus editor at end
+  setTimeout(function(){
+    editor.focus();
+    try{var r=document.createRange();r.selectNodeContents(editor);r.collapse(false);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}catch(e){}
+  },50);
 }
 
 function ndSave(){
   var editor=document.getElementById('noteDayEditor');
   if(!editor) return;
   localStorage.setItem(ndStorageKey(), editor.innerHTML);
+  var lbl=document.getElementById('ndAutoSaveLabel');
+  if(lbl){ var now=new Date(); lbl.textContent='บันทึกแล้ว '+pad(now.getHours())+':'+pad(now.getMinutes()); }
   showToast('📝 บันทึก Note of Day แล้ว','success');
+}
+
+function ndAutoSave(){
+  clearTimeout(_ndAutoSaveTimer);
+  _ndAutoSaveTimer=setTimeout(function(){
+    var editor=document.getElementById('noteDayEditor');
+    if(!editor) return;
+    localStorage.setItem(ndStorageKey(), editor.innerHTML);
+    var lbl=document.getElementById('ndAutoSaveLabel');
+    if(lbl){ var now=new Date(); lbl.textContent='บันทึกอัตโนมัติ '+pad(now.getHours())+':'+pad(now.getMinutes()); }
+  },3000);
 }
 
 function ndClear(){
   showConfirm('ล้าง Note of Day วันนี้ทั้งหมดใช่ไหม?', function(){
     var editor=document.getElementById('noteDayEditor');
-    if(editor) editor.innerHTML='';
+    if(editor){ editor.innerHTML=''; editor.focus(); }
     localStorage.removeItem(ndStorageKey());
+    var lbl=document.getElementById('ndAutoSaveLabel');
+    if(lbl) lbl.textContent='';
     showToast('🗑 ล้าง Note of Day แล้ว','success');
   });
 }
+function ndClearClick(e){ e.preventDefault(); ndClear(); }
+
+function ndCmd(e, cmd){
+  e.preventDefault();
+  var editor=document.getElementById('noteDayEditor');
+  editor.focus();
+  document.execCommand(cmd, false, null);
+}
 
 function ndExec(cmd, val){
-  document.getElementById('noteDayEditor').focus();
+  var editor=document.getElementById('noteDayEditor');
+  editor.focus();
   document.execCommand(cmd, false, val||null);
 }
 
-function ndInsertImgClick(){ document.getElementById('ndImgFile').click(); }
+function ndSetFontSize(px){
+  if(!px) return;
+  var editor=document.getElementById('noteDayEditor');
+  editor.focus();
+  var sel=window.getSelection();
+  var span2,range2;
+  if(sel&&sel.rangeCount&&!sel.isCollapsed){
+    document.execCommand('fontSize',false,'7');
+    editor.querySelectorAll('font[size="7"]').forEach(function(el){
+      span2=document.createElement('span');
+      span2.style.fontSize=px;
+      while(el.firstChild) span2.appendChild(el.firstChild);
+      el.parentNode.replaceChild(span2,el);
+    });
+  } else {
+    span2=document.createElement('span');
+    span2.style.fontSize=px;
+    span2.appendChild(document.createTextNode('\u200B'));
+    if(sel&&sel.rangeCount){
+      range2=sel.getRangeAt(0);
+      range2.collapse(true);
+      range2.insertNode(span2);
+      range2.setStart(span2.firstChild,1);
+      range2.setEnd(span2.firstChild,1);
+      sel.removeAllRanges();
+      sel.addRange(range2);
+    } else {
+      editor.appendChild(span2);
+    }
+  }
+  ndAutoSave();
+}
 
+function ndSetFontFamily(font){
+  if(!font) return;
+  var editor=document.getElementById('noteDayEditor');
+  editor.focus();
+  var sel=window.getSelection();
+  var spanF,rangeF,newRangeF,fragF;
+  if(sel&&sel.rangeCount&&!sel.isCollapsed){
+    rangeF=sel.getRangeAt(0);
+    spanF=document.createElement('span');
+    spanF.style.fontFamily=font;
+    try{ rangeF.surroundContents(spanF); }
+    catch(e){
+      fragF=rangeF.extractContents();
+      spanF.appendChild(fragF);
+      rangeF.insertNode(spanF);
+    }
+    sel.removeAllRanges();
+    newRangeF=document.createRange();
+    newRangeF.selectNodeContents(spanF);
+    newRangeF.collapse(false);
+    sel.addRange(newRangeF);
+  } else {
+    spanF=document.createElement('span');
+    spanF.style.fontFamily=font;
+    spanF.appendChild(document.createTextNode('\u200B'));
+    if(sel&&sel.rangeCount){
+      rangeF=sel.getRangeAt(0);
+      rangeF.collapse(true);
+      rangeF.insertNode(spanF);
+      rangeF.setStart(spanF.firstChild,1);
+      rangeF.setEnd(spanF.firstChild,1);
+      sel.removeAllRanges();
+      sel.addRange(rangeF);
+    } else {
+      editor.appendChild(spanF);
+    }
+  }
+  var dd=document.getElementById('ndFontFamily');
+  if(dd) dd.value='';
+  ndAutoSave();
+}
+
+
+function ndOnKeyDown(e){
+  ndAutoSave();
+  if(e.key==='Tab'){ e.preventDefault(); document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;'); }
+}
+
+// Image insert
+function ndInsertImgClick(e){ if(e)e.preventDefault(); document.getElementById('ndImgFile').click(); }
 function ndInsertImgFile(e){
   var file=e.target.files[0];
   if(file&&file.type.startsWith('image/')) ndInsertImgFromFile(file);
   e.target.value='';
 }
-
 function ndInsertImgFromFile(file){
   var r=new FileReader();
-  r.onload=function(ev){
-    ndInsertImgSrc(ev.target.result);
-  };
+  r.onload=function(ev){ ndInsertImgSrc(ev.target.result); };
   r.readAsDataURL(file);
 }
-
 function ndInsertImgSrc(src){
   var editor=document.getElementById('noteDayEditor');
   editor.focus();
+  if(_ndSavedRange){
+    var sel=window.getSelection();sel.removeAllRanges();sel.addRange(_ndSavedRange);
+    _ndSavedRange=null;
+  }
   var img=document.createElement('img');
   img.src=src;
-  img.style.cssText='max-width:100%;height:auto;border-radius:6px;margin:4px 0;display:block;cursor:zoom-in;';
+  img.style.cssText='max-width:100%;height:auto;border-radius:6px;margin:6px 0;display:block;cursor:zoom-in;';
   img.onclick=function(){ ndOpenOverlay(this.src); };
-  var sel=window.getSelection();
-  if(sel&&sel.rangeCount){
-    var range=sel.getRangeAt(0);
-    range.collapse(false);
-    range.insertNode(img);
-    range.setStartAfter(img);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  } else {
-    editor.appendChild(img);
-  }
+  var s=window.getSelection();
+  if(s&&s.rangeCount){
+    var range=s.getRangeAt(0);range.collapse(false);range.insertNode(img);
+    range.setStartAfter(img);s.removeAllRanges();s.addRange(range);
+  } else { editor.appendChild(img); }
+  ndAutoSave();
 }
-
 function ndBindImgZoom(editor){
   editor.querySelectorAll('img').forEach(function(img){
     img.style.cursor='zoom-in';
     img.onclick=function(){ ndOpenOverlay(this.src); };
   });
 }
-
 function ndOnDrop(e){
   e.preventDefault();
   var file=e.dataTransfer.files&&e.dataTransfer.files[0];
   if(file&&file.type.startsWith('image/')) ndInsertImgFromFile(file);
 }
-
 function ndOnPaste(e){
   var items=e.clipboardData&&e.clipboardData.items;
-  if(!items) return;
+  if(!items){ setTimeout(ndAutoSave,100); return; }
   for(var i=0;i<items.length;i++){
     if(items[i].type.startsWith('image/')){
       e.preventDefault();
@@ -4743,22 +4931,115 @@ function ndOnPaste(e){
       return;
     }
   }
+  setTimeout(ndAutoSave,100);
 }
-
 function ndOpenOverlay(src){
   var ov=document.getElementById('ndImgOverlay');
   var img=document.getElementById('ndImgOverlayImg');
   if(!ov||!img) return;
-  img.src=src;
-  ov.style.display='flex';
+  img.src=src; ov.style.display='flex';
   document.body.style.overflow='hidden';
 }
-
 function ndCloseOverlay(){
   var ov=document.getElementById('ndImgOverlay');
   if(ov) ov.style.display='none';
   document.body.style.overflow='';
 }
+
+// ── Emoji picker ─────────────────────────────────────────────
+function ndInitEmoji(){
+  var cats=document.getElementById('ndEmojiCats');
+  if(!cats) return;
+  cats.innerHTML='';
+  ND_EMOJI_KEYS.forEach(function(cat,i){
+    var btn=document.createElement('button');
+    btn.textContent=ND_EMOJI[cat][0];
+    btn.title=cat;
+    btn.style.cssText='background:'+(i===_ndEmojiCat?'var(--accent-dim)':'none')+';border:1px solid '+(i===_ndEmojiCat?'var(--accent)':'var(--border)')+';border-radius:4px;padding:2px 5px;font-size:15px;cursor:pointer;transition:all .12s;';
+    btn.onmousedown=function(e){ e.preventDefault(); ndEmojiSelectCat(i); };
+    cats.appendChild(btn);
+  });
+  ndEmojiRender('');
+}
+function ndEmojiSelectCat(idx){
+  _ndEmojiCat=idx;
+  var cats=document.getElementById('ndEmojiCats');
+  if(cats) Array.from(cats.children).forEach(function(b,i){
+    b.style.background=i===idx?'var(--accent-dim)':'none';
+    b.style.borderColor=i===idx?'var(--accent)':'var(--border)';
+  });
+  ndEmojiRender('');
+  var si=document.getElementById('ndEmojiSearch');
+  if(si) si.value='';
+}
+function ndEmojiFilter(q){ ndEmojiRender(q.toLowerCase()); }
+function ndEmojiRender(q){
+  var grid=document.getElementById('ndEmojiGrid');
+  if(!grid) return;
+  var list;
+  if(q){
+    list=[];
+    ND_EMOJI_KEYS.forEach(function(cat){
+      ND_EMOJI[cat].forEach(function(em){ if(cat.toLowerCase().includes(q)) list.push(em); });
+    });
+    // also add direct matches
+    ND_EMOJI_KEYS.forEach(function(cat){
+      ND_EMOJI[cat].forEach(function(em){ if(!list.includes(em)) list.push(em); });
+    });
+    list=list.slice(0,80);
+  } else {
+    list=ND_EMOJI[ND_EMOJI_KEYS[_ndEmojiCat]]||[];
+  }
+  grid.innerHTML='';
+  list.forEach(function(em){
+    var btn=document.createElement('button');
+    btn.textContent=em;
+    btn.title=em;
+    btn.style.cssText='background:none;border:none;font-size:22px;cursor:pointer;width:34px;height:34px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;transition:background .1s;';
+    btn.onmouseover=function(){this.style.background='var(--accent-dim)';};
+    btn.onmouseout=function(){this.style.background='none';};
+    btn.onmousedown=function(e){ e.preventDefault(); ndInsertEmoji(em); };
+    grid.appendChild(btn);
+  });
+}
+function ndInsertEmoji(em){
+  var editor=document.getElementById('noteDayEditor');
+  editor.focus();
+  if(_ndSavedRange){
+    var sel=window.getSelection();sel.removeAllRanges();sel.addRange(_ndSavedRange);
+    _ndSavedRange=null;
+  }
+  document.execCommand('insertText',false,em);
+  ndAutoSave();
+}
+function ndToggleEmoji(e){
+  e.preventDefault();
+  var sel=window.getSelection();
+  if(sel&&sel.rangeCount) _ndSavedRange=sel.getRangeAt(0).cloneRange();
+  _ndEmojiOpen=!_ndEmojiOpen;
+  var panel=document.getElementById('ndEmojiPanel');
+  if(panel){
+    panel.style.display=_ndEmojiOpen?'block':'none';
+    if(_ndEmojiOpen){
+      ndInitEmoji();
+      setTimeout(function(){ var si=document.getElementById('ndEmojiSearch');if(si)si.focus(); },60);
+    }
+  }
+}
+function ndCloseEmoji(e){
+  if(e) e.preventDefault();
+  _ndEmojiOpen=false;
+  var panel=document.getElementById('ndEmojiPanel');
+  if(panel) panel.style.display='none';
+}
+document.addEventListener('mousedown',function(e){
+  if(!_ndEmojiOpen) return;
+  var panel=document.getElementById('ndEmojiPanel');
+  var btn=document.getElementById('ndEmojiBtn');
+  if(panel&&btn&&!panel.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){
+    ndCloseEmoji();
+  }
+});
 // ─────────────────────────────────────────────────────────────
 
 init();
