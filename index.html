@@ -4555,9 +4555,82 @@ async function _encodeSharePayloadAsync(payload){
   // Fallback: plain base64
   try{ return btoa(unescape(encodeURIComponent(json))); }catch(e){ return ''; }
 }
+// ── Payload minification: shrink field names to cut URL size ~40-50% ──
+// Trade field map: fullName -> shortKey
+var _TK={asset:'a',side:'si',lots:'l',entry:'en',close:'cl',pnl:'p',commission:'cm',
+  result:'r',risk:'ri',maxRR:'mr',timeInPos:'ti',entryDate:'ed',closeDate:'cd',
+  setupClass:'sc',candle:'ca',code:'co',mode:'md',tf:'tf',emotion:'em',discipline:'di',
+  note:'no',imgLink:'il',tp:'tp',sl:'sl',id:'id'};
+var _TK_INV=(function(){var m={};Object.keys(_TK).forEach(function(k){m[_TK[k]]=k;});return m;})();
+// Session field map
+var _SK={netPnl:'np',trades:'tr',wins:'wi',emotion:'em',trend:'tn',confirm:'cf',
+  sessions:'ss',strategies:'st',notes:'nt',comment:'co',noteDay:'nd',
+  discipline:'di',imgLink:'il',mood:'mo'};
+var _SK_INV=(function(){var m={};Object.keys(_SK).forEach(function(k){m[_SK[k]]=k;});return m;})();
+function _minifyPayload(payload){
+  // Minify trades
+  var mt={};
+  Object.keys(payload.trades||{}).forEach(function(day){
+    mt[day]=(payload.trades[day]||[]).map(function(t){
+      var o={};
+      Object.keys(t).forEach(function(k){
+        var v=t[k];
+        // Skip empty/null/undefined/zero-string values
+        if(v===''||v===null||v===undefined) return;
+        o[_TK[k]||k]=v;
+      });
+      return o;
+    });
+  });
+  // Minify sessions
+  var ms={};
+  Object.keys(payload.sessions||{}).forEach(function(day){
+    var s=payload.sessions[day];var o={};
+    Object.keys(s).forEach(function(k){
+      var v=s[k];
+      if(v===''||v===null||v===undefined) return;
+      o[_SK[k]||k]=v;
+    });
+    ms[day]=o;
+  });
+  // Minify portfolios (only keep name field)
+  var mp={};
+  Object.keys(payload.portfolios||{}).forEach(function(id){
+    var pf=payload.portfolios[id];
+    mp[id]={n:pf&&pf.name||id};
+  });
+  return {v:2,s:ms,t:mt,p:mp,c:payload.portfolio};
+}
+function _expandPayload(mini){
+  if(!mini||mini.v!==2) return mini; // legacy format — pass through
+  // Expand trades
+  var trades={};
+  Object.keys(mini.t||{}).forEach(function(day){
+    trades[day]=(mini.t[day]||[]).map(function(o){
+      var t={};
+      Object.keys(o).forEach(function(k){t[_TK_INV[k]||k]=o[k];});
+      return t;
+    });
+  });
+  // Expand sessions
+  var sessions={};
+  Object.keys(mini.s||{}).forEach(function(day){
+    var o=mini.s[day];var s={};
+    Object.keys(o).forEach(function(k){s[_SK_INV[k]||k]=o[k];});
+    sessions[day]=s;
+  });
+  // Expand portfolios
+  var portfolios={};
+  Object.keys(mini.p||{}).forEach(function(id){
+    portfolios[id]={name:(mini.p[id]&&mini.p[id].n)||id};
+  });
+  return {sessions:sessions,trades:trades,portfolios:portfolios,portfolio:mini.c};
+}
 function openShareDashboard(){
   var existing=document.getElementById('shareDashModal');if(existing)existing.remove();
   var payload={sessions:S.sessions,trades:S.trades,portfolios:S.portfolios,portfolio:S.currentPortfolio};
+  // Minify payload: shorten field names to reduce URL size significantly
+  var mini=_minifyPayload(payload);
   var tradeCount=Object.values(S.trades).reduce(function(s,a){return s+a.length;},0);
   var dayCount=Object.keys(S.sessions).length;
   var portName=escHtml(S.portfolios[S.currentPortfolio]&&S.portfolios[S.currentPortfolio].name||'Default');
@@ -4604,7 +4677,7 @@ function openShareDashboard(){
   modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._md)modal.remove();modal._md=false;});
   // 1) Build full compressed URL first
   var baseUrl=window.location.origin+window.location.pathname;
-  _encodeSharePayloadAsync(payload).then(function(encoded){
+  _encodeSharePayloadAsync(mini).then(function(encoded){
     var modal=document.getElementById('shareDashModal');
     if(!modal||!encoded) return;
     var shareUrl=baseUrl+'?share='+encoded;
@@ -4614,13 +4687,14 @@ function openShareDashboard(){
     if(sizeLabel) sizeLabel.textContent='ขนาด: '+urlSizeKB+' KB';
     // Update UI if currently showing full
     if(modal._mode==='full') _renderShareMode('full');
-    // 2) Try to shorten with is.gd (supports CORS)
-    _tryShorten(shareUrl,function(shortUrl){
+    // 2) Try to shorten — multiple APIs with fallback
+    _tryShorten(shareUrl,function(shortUrl,provider){
       var modal=document.getElementById('shareDashModal');
       if(!modal) return;
       if(shortUrl){
         modal._shortUrl=shortUrl;
         modal._shortStatus='ok';
+        modal._shortProvider=provider||'';
       } else {
         modal._shortStatus='fail';
       }
@@ -4629,17 +4703,43 @@ function openShareDashboard(){
   });
 }
 async function _tryShorten(longUrl,callback){
-  // is.gd supports CORS natively
+  // URLs > 5000 chars will fail most shorteners — show warning in status
+  var modal=document.getElementById('shareDashModal');
+  var status=document.getElementById('shareUrlStatus');
+  var urlLen=longUrl.length;
+  if(urlLen>4500&&status) status.innerHTML='<span style="color:var(--amber);font-size:9px;">⚠ URL ใหญ่ ('+Math.round(urlLen/1024*10)/10+' KB) — กำลังลอง...</span>';
+
+  // 1) is.gd — CORS native, limit ~5000 chars
+  if(urlLen<=5000){
+    try{
+      var r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(longUrl),{signal:AbortSignal.timeout(8000)});
+      if(r.ok){var s=await r.text();if(s&&s.startsWith('https://is.gd/')){callback(s.trim(),'is.gd');return;}}
+    }catch(e){}
+  }
+
+  // 2) v.gd — same backend as is.gd, sometimes different rate limit
+  if(urlLen<=5000){
+    try{
+      var r2=await fetch('https://v.gd/create.php?format=simple&url='+encodeURIComponent(longUrl),{signal:AbortSignal.timeout(8000)});
+      if(r2.ok){var s2=await r2.text();if(s2&&s2.startsWith('https://v.gd/')){callback(s2.trim(),'v.gd');return;}}
+    }catch(e){}
+  }
+
+  // 3) TinyURL via corsproxy.io
   try{
-    var r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(longUrl),{signal:AbortSignal.timeout(8000)});
-    if(r.ok){var s=await r.text();if(s&&s.startsWith('https://is.gd/')){callback(s.trim());return;}}
+    var tu='https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl);
+    var r3=await fetch('https://corsproxy.io/?url='+encodeURIComponent(tu),{signal:AbortSignal.timeout(10000)});
+    if(r3.ok){var s3=await r3.text();if(s3&&s3.startsWith('https://tinyurl.com/')){callback(s3.trim(),'TinyURL');return;}}
   }catch(e){}
-  // Fallback: v.gd (same service, different domain)
+
+  // 4) TinyURL via allorigins proxy
   try{
-    var r2=await fetch('https://v.gd/create.php?format=simple&url='+encodeURIComponent(longUrl),{signal:AbortSignal.timeout(6000)});
-    if(r2.ok){var s2=await r2.text();if(s2&&s2.startsWith('https://v.gd/')){callback(s2.trim());return;}}
+    var tu2='https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl);
+    var r4=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(tu2),{signal:AbortSignal.timeout(10000)});
+    if(r4.ok){var j=await r4.json();var s4=j&&j.contents;if(s4&&s4.trim().startsWith('https://tinyurl.com/')){callback(s4.trim(),'TinyURL');return;}}
   }catch(e){}
-  callback('');
+
+  callback('','');
 }
 function switchShareMode(mode){
   var modal=document.getElementById('shareDashModal');
@@ -4669,14 +4769,14 @@ function _renderShareMode(mode){
     if(label) label.textContent='🔗 ลิ้งค์สั้น';
     if(modal._shortStatus==='ok'&&modal._shortUrl){
       if(ta){ta.value=modal._shortUrl;ta.style.color='var(--accent)';}
-      if(status) status.innerHTML='<span style="color:var(--green);font-size:9px;">✓ is.gd</span>';
+      if(status) status.innerHTML='<span style="color:var(--green);font-size:9px;">✓ '+(modal._shortProvider||'shortened')+'</span>';
       if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์สั้น';}
     } else if(modal._shortStatus==='fail'){
-      if(ta){ta.value='ไม่สามารถสร้างลิ้งค์สั้นได้ — ลองใช้ลิ้งค์เต็มแทน';ta.style.color='var(--amber)';}
-      if(status) status.innerHTML='<span style="color:var(--amber);font-size:9px;">⚠ ล้มเหลว</span>';
-      if(copyBtn){copyBtn.disabled=true;copyBtn.innerHTML='⚠ ลิ้งค์สั้นไม่พร้อม';}
+      if(ta){ta.value='URL ใหญ่เกินไป — ทุก API ล้มเหลว กรุณาใช้ลิ้งค์เต็มแทน';ta.style.color='var(--amber)';}
+      if(status) status.innerHTML='<span style="color:var(--red);font-size:9px;">✕ ทุก API ล้มเหลว</span>';
+      if(copyBtn){copyBtn.disabled=true;copyBtn.innerHTML='⚠ ใช้ลิ้งค์เต็มแทน';}
     } else {
-      if(ta){ta.value='กำลังย่อลิ้งค์...';ta.style.color='var(--text-muted)';}
+      if(ta){ta.value='กำลังลอง is.gd → v.gd → TinyURL...';ta.style.color='var(--text-muted)';}
       if(status) status.innerHTML='<span style="font-size:9px;">⏳ กำลังย่อ...</span>';
       if(copyBtn){copyBtn.disabled=true;copyBtn.innerHTML='⏳ กำลังย่อลิ้งค์...';}
     }
@@ -4726,6 +4826,8 @@ function checkSharedUrl(){
   if(!encoded) return;
   // Support both compressed (z:...) and legacy plain base64
   function _applySharedData(data){
+    // Expand minified format (v:2) back to full field names
+    if(data&&data.v===2) data=_expandPayload(data);
     _isReadOnly=true;
     if(data.sessions) S.sessions=data.sessions;
     if(data.trades) S.trades=data.trades;
