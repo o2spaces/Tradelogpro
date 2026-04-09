@@ -173,7 +173,7 @@ body.modal-open #sidebarBtnRight {
 .stat-val.pos{color:var(--green);}.stat-val.neg{color:var(--red);}.stat-val.neu{color:var(--text-secondary);}
 .nd-btn{background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;padding:2px 7px;border-radius:4px;font-size:11px;height:24px;display:inline-flex;align-items:center;font-family:var(--font-main);transition:all .12s;}
 .nd-btn:hover{border-color:var(--accent);color:var(--accent);}
-#noteDayEditor img{max-width:100%;height:auto;border-radius:6px;margin:4px 0;cursor:zoom-in;display:block;}
+#noteDayEditor img{max-width:100%;height:auto;border-radius:6px;margin:4px 0;cursor:zoom-in;display:block;image-rendering:high-quality;image-rendering:-webkit-optimize-contrast;}
 #noteDayEditor:empty:before{content:attr(data-placeholder);color:var(--text-muted);pointer-events:none;}
 #noteDayEditor ul,#noteDayEditor ol{padding-left:1.6em;margin:4px 0;}
 #noteDayEditor ul{list-style-type:disc;}
@@ -315,12 +315,16 @@ body.modal-open #sidebarBtnRight {
 /* MODALS */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
 .modal-backdrop.open{opacity:1;pointer-events:all;}
-.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;width:min(600px,94vw);max-width:96vw;max-height:91vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s;}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;width:min(600px,94vw);max-width:96vw;max-height:91vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s,width .2s,height .2s,max-width .2s,max-height .2s,border-radius .2s;}
 /* When sidebars collapse, allow modal to breathe wider */
 .layout.left-collapsed ~ .modal-backdrop .modal,
 .layout.right-collapsed ~ .modal-backdrop .modal { width:min(680px,94vw); }
 .modal-backdrop.open .modal{transform:translateY(0);}
 .modal-wide{width:740px;}.modal-xl{width:min(940px,96vw);}
+/* Fullscreen modal for Note of Day */
+.modal.modal-fullscreen{width:100vw!important;max-width:100vw!important;height:100vh!important;max-height:100vh!important;border-radius:0!important;display:flex;flex-direction:column;}
+.modal.modal-fullscreen .modal-body{flex:1;overflow-y:auto;min-height:0;}
+#noteDayEditor{min-height:200px;}
 .modal-header{padding:15px 17px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;}
 .modal-title{font-size:14px;font-weight:600;}
 .modal-subtitle{font-size:11px;color:var(--text-muted);margin-top:2px;}
@@ -813,11 +817,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
         style="min-height:280px;max-height:400px;overflow-y:auto;padding:12px 14px;background:var(--bg-input);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);font-size:15px;line-height:1.7;color:var(--text-primary);outline:none;font-family:var(--font-main);word-break:break-word;"
       ></div>
 
-      <!-- Image fullscreen overlay -->
-      <div id="ndImgOverlay" onclick="ndCloseOverlay()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
-        <img id="ndImgOverlayImg" style="max-width:95vw;max-height:92vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.8);object-fit:contain;">
-        <button onclick="ndCloseOverlay()" style="position:fixed;top:16px;right:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10000;">✕</button>
-      </div>
 
       <!-- Footer buttons -->
       <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:7px;align-items:center;">
@@ -4565,66 +4564,149 @@ function openShareDashboard(){
   var modal=document.createElement('div');
   modal.id='shareDashModal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:20px;min-width:340px;max-width:480px;position:relative;">'
+  modal.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:20px;min-width:360px;max-width:500px;width:90vw;position:relative;">'
     +'<button onclick="document.getElementById(\'shareDashModal\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;line-height:1;" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text-muted)\'">✕</button>'
     +'<div style="font-size:14px;font-weight:600;margin-bottom:4px;">🔗 Share Dashboard</div>'
-    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">สร้างลิ้งค์แชร์ข้อมูลเทรดของคุณ — ผู้รับสามารถดูข้อมูลแบบ Read-only ได้</div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">สร้างลิ้งค์แชร์ข้อมูลเทรดของคุณ — ผู้รับสามารถดูข้อมูลแบบ Read-only ได้</div>'
+    // Info row
     +'<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;">'
     +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">📊 ข้อมูลที่จะแชร์ (พอร์ต: <strong style="color:var(--accent);">'+portName+'</strong>)</div>'
-    +'<div style="font-size:11px;display:flex;gap:12px;">'
+    +'<div style="font-size:11px;display:flex;gap:12px;align-items:center;">'
     +'<span>📈 Trades: <strong>'+tradeCount+'</strong></span>'
     +'<span>📅 Days: <strong>'+dayCount+'</strong></span>'
+    +'<span id="shareSizeLabel" style="margin-left:auto;font-size:10px;color:var(--text-muted);"></span>'
     +'</div></div>'
-    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">'
-    +'<span>ลิ้งค์ (คลิกเพื่อคัดลอก)</span><span id="shareUrlStatus"><span style="color:var(--text-muted);font-size:9px;">⏳ กำลังสร้าง...</span></span>'
+    // Tab toggle: ลิ้งค์สั้น / ลิ้งค์เต็ม
+    +'<div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:10px;">'
+    +'<button id="sTabShort" onclick="switchShareMode(\'short\')" style="flex:1;padding:6px 10px;font-size:11px;font-weight:500;cursor:pointer;border:none;font-family:var(--font-main);background:var(--accent-dim);color:var(--accent);transition:all .15s;">🔗 ลิ้งค์สั้น</button>'
+    +'<button id="sTabFull" onclick="switchShareMode(\'full\')" style="flex:1;padding:6px 10px;font-size:11px;font-weight:500;cursor:pointer;border:none;border-left:1px solid var(--border);font-family:var(--font-main);background:var(--bg-input);color:var(--text-muted);transition:all .15s;">📄 ลิ้งค์เต็ม</button>'
     +'</div>'
-    +'<div id="shareUrlBox" onclick="copyShareUrl()" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:9px 11px;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);cursor:pointer;word-break:break-all;min-height:36px;display:flex;align-items:center;gap:7px;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"><span id="shareUrlIcon" style="flex-shrink:0;opacity:.5;">⏳</span><span id="shareUrlText" style="word-break:break-all;">กำลังสร้างลิ้งค์...</span></div>'
+    // Status line
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">'
+    +'<span id="shareUrlLabel">🔗 ลิ้งค์แชร์</span><span id="shareUrlStatus"><span style="font-size:9px;">⏳ กำลังสร้าง...</span></span>'
+    +'</div>'
+    // URL textarea
+    +'<textarea id="shareUrlTextarea" readonly onclick="this.select()" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:9px 11px;font-size:10px;font-family:var(--font-mono);color:var(--text-muted);resize:none;height:52px;line-height:1.5;outline:none;cursor:text;transition:border-color .15s;word-break:break-all;overflow-wrap:break-word;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'">กำลังสร้างลิ้งค์...</textarea>'
+    // Buttons
     +'<div style="margin-top:10px;display:flex;gap:7px;">'
-    +'<button class="btn-primary" id="shareUrlCopyBtn" onclick="copyShareUrl()" style="flex:1;" disabled>⏳ กำลังสร้างลิ้งค์...</button>'
+    +'<button class="btn-primary" id="shareUrlCopyBtn" onclick="copyShareUrl()" style="flex:1;" disabled>⏳ กำลังสร้าง...</button>'
+    +'<button class="btn-sm" onclick="var ta=document.getElementById(\'shareUrlTextarea\');if(ta){ta.focus();ta.select();}">เลือกทั้งหมด</button>'
     +'<button class="btn-sm" onclick="document.getElementById(\'shareDashModal\').remove()">ปิด</button>'
     +'</div>'
     +'<div style="margin-top:8px;font-size:10px;color:var(--amber);">⚠️ ลิ้งค์มีข้อมูลทั้งหมด — แชร์เฉพาะกับคนที่ไว้ใจเท่านั้น</div>'
     +'</div>';
   modal._shareUrl='';
+  modal._shortUrl='';
+  modal._shortStatus='pending'; // pending | ok | fail
+  modal._mode='short';
   document.body.appendChild(modal);
   modal.addEventListener('mousedown',function(e){modal._md=(e.target===modal);});
   modal.addEventListener('mouseup',function(e){if(e.target===modal&&modal._md)modal.remove();modal._md=false;});
-  // Build compressed URL async (instant, no external API)
+  // 1) Build full compressed URL first
   var baseUrl=window.location.origin+window.location.pathname;
   _encodeSharePayloadAsync(payload).then(function(encoded){
     var modal=document.getElementById('shareDashModal');
     if(!modal||!encoded) return;
     var shareUrl=baseUrl+'?share='+encoded;
     modal._shareUrl=shareUrl;
-    var txt=document.getElementById('shareUrlText');
-    var icon=document.getElementById('shareUrlIcon');
-    var status=document.getElementById('shareUrlStatus');
-    var copyBtn=document.getElementById('shareUrlCopyBtn');
     var urlSizeKB=Math.round(shareUrl.length/1024*10)/10;
-    var preview=shareUrl.length>70?shareUrl.substring(0,70)+'…':shareUrl;
-    if(txt){txt.textContent=preview;txt.title=shareUrl;}
-    if(icon){icon.textContent='🔗';icon.style.opacity='1';}
-    if(status) status.innerHTML='<span style="color:var(--green);font-size:9px;">✓ พร้อม ('+urlSizeKB+' KB)</span>';
-    if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์';}
-    var box=document.getElementById('shareUrlBox');
-    if(box) box.style.color='var(--accent)';
+    var sizeLabel=document.getElementById('shareSizeLabel');
+    if(sizeLabel) sizeLabel.textContent='ขนาด: '+urlSizeKB+' KB';
+    // Update UI if currently showing full
+    if(modal._mode==='full') _renderShareMode('full');
+    // 2) Try to shorten with is.gd (supports CORS)
+    _tryShorten(shareUrl,function(shortUrl){
+      var modal=document.getElementById('shareDashModal');
+      if(!modal) return;
+      if(shortUrl){
+        modal._shortUrl=shortUrl;
+        modal._shortStatus='ok';
+      } else {
+        modal._shortStatus='fail';
+      }
+      if(modal._mode==='short') _renderShareMode('short');
+    });
   });
 }
-function switchShareTab(tab){ /* no-op kept for compat */ }
-function _renderShareTab(tab){ /* no-op kept for compat */ }
+async function _tryShorten(longUrl,callback){
+  // is.gd supports CORS natively
+  try{
+    var r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(longUrl),{signal:AbortSignal.timeout(8000)});
+    if(r.ok){var s=await r.text();if(s&&s.startsWith('https://is.gd/')){callback(s.trim());return;}}
+  }catch(e){}
+  // Fallback: v.gd (same service, different domain)
+  try{
+    var r2=await fetch('https://v.gd/create.php?format=simple&url='+encodeURIComponent(longUrl),{signal:AbortSignal.timeout(6000)});
+    if(r2.ok){var s2=await r2.text();if(s2&&s2.startsWith('https://v.gd/')){callback(s2.trim());return;}}
+  }catch(e){}
+  callback('');
+}
+function switchShareMode(mode){
+  var modal=document.getElementById('shareDashModal');
+  if(!modal) return;
+  modal._mode=mode;
+  var tShort=document.getElementById('sTabShort');
+  var tFull=document.getElementById('sTabFull');
+  if(tShort&&tFull){
+    if(mode==='short'){
+      tShort.style.background='var(--accent-dim)';tShort.style.color='var(--accent)';
+      tFull.style.background='var(--bg-input)';tFull.style.color='var(--text-muted)';
+    } else {
+      tFull.style.background='var(--accent-dim)';tFull.style.color='var(--accent)';
+      tShort.style.background='var(--bg-input)';tShort.style.color='var(--text-muted)';
+    }
+  }
+  _renderShareMode(mode);
+}
+function _renderShareMode(mode){
+  var modal=document.getElementById('shareDashModal');
+  if(!modal) return;
+  var ta=document.getElementById('shareUrlTextarea');
+  var status=document.getElementById('shareUrlStatus');
+  var copyBtn=document.getElementById('shareUrlCopyBtn');
+  var label=document.getElementById('shareUrlLabel');
+  if(mode==='short'){
+    if(label) label.textContent='🔗 ลิ้งค์สั้น';
+    if(modal._shortStatus==='ok'&&modal._shortUrl){
+      if(ta){ta.value=modal._shortUrl;ta.style.color='var(--accent)';}
+      if(status) status.innerHTML='<span style="color:var(--green);font-size:9px;">✓ is.gd</span>';
+      if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์สั้น';}
+    } else if(modal._shortStatus==='fail'){
+      if(ta){ta.value='ไม่สามารถสร้างลิ้งค์สั้นได้ — ลองใช้ลิ้งค์เต็มแทน';ta.style.color='var(--amber)';}
+      if(status) status.innerHTML='<span style="color:var(--amber);font-size:9px;">⚠ ล้มเหลว</span>';
+      if(copyBtn){copyBtn.disabled=true;copyBtn.innerHTML='⚠ ลิ้งค์สั้นไม่พร้อม';}
+    } else {
+      if(ta){ta.value='กำลังย่อลิ้งค์...';ta.style.color='var(--text-muted)';}
+      if(status) status.innerHTML='<span style="font-size:9px;">⏳ กำลังย่อ...</span>';
+      if(copyBtn){copyBtn.disabled=true;copyBtn.innerHTML='⏳ กำลังย่อลิ้งค์...';}
+    }
+  } else {
+    if(label) label.textContent='📄 ลิ้งค์เต็ม';
+    if(modal._shareUrl){
+      if(ta){ta.value=modal._shareUrl;ta.style.color='var(--accent)';}
+      if(status) status.innerHTML='<span style="color:var(--green);font-size:9px;">✓ พร้อมแชร์</span>';
+      if(copyBtn){copyBtn.disabled=false;copyBtn.innerHTML='📋 คัดลอกลิ้งค์เต็ม';}
+    } else {
+      if(ta){ta.value='กำลังสร้างลิ้งค์...';ta.style.color='var(--text-muted)';}
+      if(copyBtn){copyBtn.disabled=true;copyBtn.innerHTML='⏳ กำลังสร้าง...';}
+    }
+  }
+}
+function switchShareTab(tab){ switchShareMode(tab==='short'?'short':'full'); }
+function _renderShareTab(tab){ _renderShareMode(tab==='short'?'short':'full'); }
 async function _shortenWithTinyUrl(longUrl, callback){ callback(''); }
 function copyShareUrl(){
   var modal=document.getElementById('shareDashModal');
   if(!modal) return;
-  var urlToCopy=(modal._shareTab==='short'&&modal._shortUrl)?modal._shortUrl:modal._shareUrl;
+  var urlToCopy=(modal._mode==='short'&&modal._shortUrl)?modal._shortUrl:modal._shareUrl;
   if(!urlToCopy) return;
   function onCopied(){
-    var label=(modal._shareTab==='short'&&modal._shortUrl)?'ลิ้งค์สั้น':'ลิ้งค์เต็ม';
+    var label=(modal._mode==='short'&&modal._shortUrl)?'ลิ้งค์สั้น':'ลิ้งค์เต็ม';
     showToast('📋 คัดลอก'+label+'แล้ว!','success');
     var btn=document.getElementById('shareUrlCopyBtn');
     if(btn){var orig=btn.innerHTML;btn.innerHTML='✅ คัดลอกแล้ว!';btn.style.background='var(--green)';setTimeout(function(){btn.innerHTML=orig;btn.style.background='';},2000);}
-    var box=document.getElementById('shareUrlBox');
-    if(box){box.style.borderColor='var(--green)';setTimeout(function(){box.style.borderColor='';},2000);}
+    var ta=document.getElementById('shareUrlTextarea');
+    if(ta){ta.style.borderColor='var(--green)';setTimeout(function(){ta.style.borderColor='';},2000);}
   }
   navigator.clipboard.writeText(urlToCopy).then(onCopied).catch(function(){
     var ta=document.createElement('textarea');ta.value=urlToCopy;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();onCopied();
@@ -5206,14 +5288,24 @@ function ndOpenOverlay(src){
   var ov=document.getElementById('ndImgOverlay');
   var img=document.getElementById('ndImgOverlayImg');
   if(!ov||!img) return;
-  img.src=src; ov.style.display='flex';
+  img.src='';
+  img.src=src;
+  ov.style.display='block';
+  document.documentElement.style.overflow='hidden';
   document.body.style.overflow='hidden';
 }
 function ndCloseOverlay(){
   var ov=document.getElementById('ndImgOverlay');
   if(ov) ov.style.display='none';
+  document.documentElement.style.overflow='';
   document.body.style.overflow='';
 }
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    var ov=document.getElementById('ndImgOverlay');
+    if(ov&&ov.style.display!=='none') ndCloseOverlay();
+  }
+});
 
 // ── Emoji picker ─────────────────────────────────────────────
 function ndInitEmoji(){
@@ -5326,6 +5418,11 @@ init();
   <span class="sb-arrow" id="arrowRight">›</span>
   <span class="sb-dots"><span class="sb-dot"></span><span class="sb-dot"></span><span class="sb-dot"></span></span>
 </button>
+<!-- ═══ Image Fullscreen Overlay (body-level, above all modals) ═══ -->
+<div id="ndImgOverlay" style="display:none;position:fixed;inset:0;width:100vw;height:100vh;background:#000;z-index:99999;" onclick="ndCloseOverlay();">
+  <img id="ndImgOverlayImg" style="width:100vw;height:100vh;object-fit:contain;display:block;cursor:zoom-out;">
+  <button onclick="event.stopPropagation();ndCloseOverlay();" style="position:fixed;top:14px;right:16px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.3);color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100000;backdrop-filter:blur(4px);">✕</button>
+</div>
 
 </body>
 </html>
