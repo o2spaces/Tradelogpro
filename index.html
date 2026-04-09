@@ -714,7 +714,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
     <!-- NOTE OF THE DAY TAB -->
     <div id="tNoteDay" style="display:none;">
       <!-- Toolbar Row 1: text formatting -->
-      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm) var(--radius-sm) 0 0;padding:5px 8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+      <div id="ndToolbar" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm) var(--radius-sm) 0 0;padding:5px 8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
         <!-- Font family -->
         <select id="ndFontFamily" onchange="ndSetFontFamily(this.value)" title="เลือกฟอนต์"
           style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:4px;font-size:11px;padding:0 4px;height:26px;cursor:pointer;font-family:var(--font-main);min-width:110px;">
@@ -819,7 +819,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:invert(0.
 
 
       <!-- Footer buttons -->
-      <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:7px;align-items:center;">
+      <div id="ndFooter" style="display:flex;justify-content:flex-end;margin-top:8px;gap:7px;align-items:center;">
         <span id="ndAutoSaveLabel" style="font-size:10px;color:var(--text-muted);margin-right:auto;"></span>
         <button class="btn-sm" onclick="ndLoadContent()">↺ โหลดใหม่</button>
         <button class="btn-primary" onclick="ndSave()">💾 บันทึก Note of Day</button>
@@ -5192,14 +5192,30 @@ function ndStorageKey(){ return 'tj_noteday_'+S.currentPortfolio+'_'+S.mKey; }
 function ndLoadContent(){
   var editor=document.getElementById('noteDayEditor');
   if(!editor) return;
+  if(_isReadOnly){
+    // Read-only: load from shared session data instead of localStorage
+    var key=ndStorageKey();
+    var dayData=S.sessions&&S.sessions[key];
+    var html=(dayData&&dayData.noteDay)||'';
+    editor.innerHTML=html||'<div style="color:var(--text-muted);font-style:italic;font-size:12px;padding:8px 0;">ไม่มี Note of Day สำหรับวันนี้</div>';
+    editor.contentEditable='false';
+    editor.style.cursor='default';
+    editor.style.opacity='0.85';
+    // Hide toolbar and action buttons
+    var toolbar=document.getElementById('ndToolbar');
+    if(toolbar) toolbar.style.display='none';
+    var footer=document.getElementById('ndFooter');
+    if(footer) footer.style.display='none';
+    ndBindImgZoom(editor);
+    return;
+  }
   var saved=localStorage.getItem(ndStorageKey());
   editor.innerHTML = saved || '';
+  editor.contentEditable='true';
   ndBindImgZoom(editor);
-  // reset emoji panel
   ndCloseEmoji();
   var lbl=document.getElementById('ndAutoSaveLabel');
   if(lbl) lbl.textContent='';
-  // focus editor at end
   setTimeout(function(){
     editor.focus();
     try{var r=document.createRange();r.selectNodeContents(editor);r.collapse(false);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}catch(e){}
@@ -5207,6 +5223,7 @@ function ndLoadContent(){
 }
 
 function ndSave(){
+  if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   var editor=document.getElementById('noteDayEditor');
   if(!editor) return;
   localStorage.setItem(ndStorageKey(), editor.innerHTML);
@@ -5216,6 +5233,7 @@ function ndSave(){
 }
 
 function ndAutoSave(){
+  if(_isReadOnly) return;
   clearTimeout(_ndAutoSaveTimer);
   _ndAutoSaveTimer=setTimeout(function(){
     var editor=document.getElementById('noteDayEditor');
@@ -5227,6 +5245,7 @@ function ndAutoSave(){
 }
 
 function ndClear(){
+  if(_isReadOnly){showToast('🔒 โหมดดูเท่านั้น — ไม่สามารถแก้ไขได้','error');return;}
   showConfirm('ล้าง Note of Day วันนี้ทั้งหมดใช่ไหม?', function(){
     var editor=document.getElementById('noteDayEditor');
     if(editor){ editor.innerHTML=''; editor.focus(); }
