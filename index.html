@@ -1281,7 +1281,6 @@ function saveSession(d){
     avgW, avgL, pf, +dd.toFixed(2), _now()
   ];
   // find row matching both date AND portfolio
-  // หา row ที่ตรงทั้ง Date (col1) และ Portfolio (col2)
   var existing=_findRow2(sh,1,d.date,2,portfolio);
   if(existing>0) sh.getRange(existing,1,1,row.length).setValues([row]);
   else{ sh.appendRow(row); existing=sh.getLastRow(); }
@@ -1734,6 +1733,7 @@ function init(){
   initEmojiGrid();
   initSessionTagColors();
   loadDropOptions();
+  loadStrategies(); // โหลด strategies ของพอร์ตปัจจุบัน
   renderPortfolioBar();
   renderCal();
   setTimeout(function(){ _sidebarRefresh(); },50);
@@ -1787,6 +1787,12 @@ function switchPortfolio(id){
   // update UI
   document.querySelectorAll('.port-tab').forEach(function(t){t.classList.toggle('active',t.dataset.portId===id);});
   updateStats();renderCal();updateRecent();renderTodayOrders();renderPortfolioBar();
+  // โหลด options/tags ของพอร์ตใหม่
+  loadDropOptions();   // Trend, Confirm options
+  loadStrategies();    // Strategies tags
+  // reload _customSessions ของพอร์ตใหม่
+  _customSessions=loadCustomSessions()||DEFAULT_SESSIONS.map(function(s){return Object.assign({},s);});
+  renderAllSessRows();
   // โหลดข้อมูล Analysis sidebar ของพอร์ตใหม่
   _sidebarRefresh();
   localStorage.setItem('tj_curport',id);
@@ -2188,7 +2194,11 @@ function loadDropOptions(){
     }catch(e){}
   }
   Object.keys(DROP_DEFAULTS).forEach(function(id){
-    var stored = localStorage.getItem('tj_drop_'+id);
+    var isPortSpecific=(id==='rTrend'||id==='rConfirm');
+    var storageKey=isPortSpecific?'tj_drop_'+S.currentPortfolio+'_'+id:'tj_drop_'+id;
+    // ถ้าไม่มี key ของพอร์ตนี้ ลองอ่าน key เก่า (migration)
+    var stored=localStorage.getItem(storageKey);
+    if(!stored&&isPortSpecific) stored=localStorage.getItem('tj_drop_'+id);
     var opts = stored ? JSON.parse(stored) : DROP_DEFAULTS[id];
     var sel = document.getElementById(id);
     if(!sel) return;
@@ -2207,7 +2217,10 @@ function loadDropOptions(){
 function saveDropOptions(selectId){
   var sel=document.getElementById(selectId); if(!sel) return;
   var opts=Array.from(sel.options).filter(function(o){return o.value!='';}).map(function(o){return o.text;});
-  localStorage.setItem('tj_drop_'+selectId, JSON.stringify(opts));
+  // แยก key ตามพอร์ตสำหรับ rTrend และ rConfirm
+  var isPortSpecific=(selectId==='rTrend'||selectId==='rConfirm');
+  var storageKey=isPortSpecific?'tj_drop_'+S.currentPortfolio+'_'+selectId:'tj_drop_'+selectId;
+  localStorage.setItem(storageKey, JSON.stringify(opts));
   // Sync asset list to Sheet when oAsset changes
   if(selectId==='oAsset') saveAssetsToSheet();
   // Log dropdown change to Sheet
@@ -2603,8 +2616,6 @@ function saveEntry(){if(_isReadOnly){showToast('🔒 โหมดดูเท่
   var sessObj={emotion:S.emo,trend:document.getElementById('rTrend').value,confirm:document.getElementById('rConfirm').value,sessions:sess.join(', '),strategies:strats.join(', '),notes:newNote,netPnl:pnl,trades:tr.length,wins:wins,notesHistory:existing.notesHistory};
   S.sessions[k]=sessObj;
   persistPort();updateStats();renderCal();updateRecent();renderTodayOrders();
-  // โหลด sidebar ใหม่จากข้อมูลที่เพิ่งบันทึก เพื่อยืนยันค่าใน UI
-  _loadSidebarDay(k);
   if(S.scriptUrl) sendSheet('saveSession',Object.assign({date:k},sessObj));
   showToast('✅ บันทึกแล้ว'+(S.scriptUrl?' → Sheet':' (local)'),'success');
 }
@@ -4008,10 +4019,19 @@ var DEFAULT_SESSIONS=[
   {id:'newyork',label:'New York',time:'20:00-05:00',cls:'newyork'}
 ];
 function loadCustomSessions(){
-  try{return JSON.parse(localStorage.getItem('tj_custom_sess')||'null');}catch(e){return null;}
+  var portKey='tj_custom_sess_'+S.currentPortfolio;
+  // อ่าน key ของพอร์ตก่อน ถ้าไม่มีให้ fallback ไป key เก่า (migration)
+  try{
+    var portData=localStorage.getItem(portKey);
+    if(portData) return JSON.parse(portData);
+    var legacy=localStorage.getItem('tj_custom_sess');
+    if(legacy) return JSON.parse(legacy);
+    return null;
+  }catch(e){return null;}
 }
 function saveCustomSessions(){
-  localStorage.setItem('tj_custom_sess',JSON.stringify(_customSessions));
+  var portKey='tj_custom_sess_'+S.currentPortfolio;
+  localStorage.setItem(portKey,JSON.stringify(_customSessions));
   if(S.scriptUrl) sendSheet('saveSettings',{key:'custom_sessions',value:_customSessions.map(function(s){return s.label+(s.time?' ('+s.time+')':'');}).join(', ')});
 }
 var _customSessions=loadCustomSessions()||DEFAULT_SESSIONS.map(function(s){return Object.assign({},s);});
@@ -4334,16 +4354,41 @@ function toggleStratEdit(){
   if(btn){btn.textContent=_stratEditMode?'Done':'Edit';btn.style.color=_stratEditMode?'var(--red)':'var(--text-muted)';btn.style.borderColor=_stratEditMode?'var(--red)':'var(--border)';}
   document.querySelectorAll('#stratRow .tag-del').forEach(function(b){b.style.display=_stratEditMode?'inline-block':'none';});
 }
+// ── STRATEGIES: save/load แยกตามพอร์ต ──
+var STRAT_DEFAULTS=['Breakout','Reversal','Trend','Scalping','OB','FVG','S&D','SMC'];
+function saveStrategies(){
+  var row=document.getElementById('stratRow');if(!row)return;
+  var strats=Array.from(row.querySelectorAll('.strat-wrap')).map(function(w){
+    return w.querySelector('.tag').textContent.trim();
+  });
+  localStorage.setItem('tj_strat_'+S.currentPortfolio,JSON.stringify(strats));
+}
+function loadStrategies(){
+  var portKey='tj_strat_'+S.currentPortfolio;
+  var stored=localStorage.getItem(portKey);
+  // fallback: อ่านจาก HTML default ถ้ายังไม่เคย save
+  var strats=stored?JSON.parse(stored):STRAT_DEFAULTS;
+  var row=document.getElementById('stratRow');if(!row)return;
+  row.innerHTML='';
+  strats.forEach(function(name){
+    var wrap=document.createElement('span');wrap.className='strat-wrap';
+    wrap.innerHTML='<span class="tag" onclick="this.classList.toggle(\'active\')">'+name+'</span>'
+      +'<button class="tag-del" onclick="removeStrat(this)" style="display:none;">×</button>';
+    row.appendChild(wrap);
+  });
+}
 function addStrategy(){
   var name=prompt('ชื่อ Strategy ใหม่:','');
   if(!name||!name.trim())return;
   name=name.trim();
   var row=document.getElementById('stratRow');
   var wrap=document.createElement('span');wrap.className='strat-wrap';
-  wrap.innerHTML='<span class="tag" onclick="this.classList.toggle(\'active\')">'+name+'</span><button class="tag-del" onclick="removeStrat(this)" style="display:'+(_stratEditMode?'inline-block':'none')+';">×</button>';
+  wrap.innerHTML='<span class="tag" onclick="this.classList.toggle(\'active\')">'+name+'</span>'
+    +'<button class="tag-del" onclick="removeStrat(this)" style="display:'+(_stratEditMode?'inline-block':'none')+';">×</button>';
   row.appendChild(wrap);
+  saveStrategies(); // บันทึกทันที
 }
-function removeStrat(btn){btn.parentElement.remove();}
+function removeStrat(btn){btn.parentElement.remove();saveStrategies();} // บันทึกทันที
 
 // DROPDOWN OPTION EDITOR with drag-to-reorder
 var _deCurrentSelectId = '';
@@ -4380,6 +4425,8 @@ function openDropEdit(selectId, label){
 }
 function deResetOpts(selectId){
   if(!confirm('รีเซ็ตกลับค่าเริ่มต้น?')) return;
+  var isPortSpecific=(selectId==='rTrend'||selectId==='rConfirm');
+  if(isPortSpecific) localStorage.removeItem('tj_drop_'+S.currentPortfolio+'_'+selectId);
   localStorage.removeItem('tj_drop_'+selectId);
   var sel=document.getElementById(selectId); if(!sel) return;
   Array.from(sel.options).forEach(function(o){if(o.value!=='')o.remove();});
